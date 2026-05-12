@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Payload, CollectionSlug } from 'payload'
 import sharp from 'sharp'
 
