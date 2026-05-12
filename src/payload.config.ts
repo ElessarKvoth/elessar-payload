@@ -7,6 +7,14 @@ import sharp from 'sharp'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
+import { Artists } from './collections/Artists'
+import { Categories } from './collections/Categories'
+import { Records } from './collections/Records'
+import { Apparel } from './collections/Apparel'
+import { Customers } from './collections/Customers'
+import { Orders } from './collections/Orders'
+import { Banners } from './collections/Banners'
+import { Products } from './collections/Products'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -18,7 +26,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media],
+  collections: [Users, Media, Artists, Categories, Records, Apparel, Products, Customers, Orders, Banners],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
@@ -26,9 +34,25 @@ export default buildConfig({
   },
   db: vercelPostgresAdapter({
     pool: {
-      connectionString: process.env.POSTGRES_URL || '',
+      connectionString: process.env.DATABASE_URI || process.env.POSTGRES_URL || '',
     },
   }),
+  upload: {
+    limits: {
+      fileSize: 5_000_000, // 5 MB
+    },
+  },
+  serverURL: process.env.NEXT_PUBLIC_SERVER_URL,
+  cors: [
+    process.env.FRONTEND_URL || 'http://localhost:3001',
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ],
+  csrf: [
+    process.env.FRONTEND_URL || 'http://localhost:3001',
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ],
   sharp,
   plugins: [],
 })

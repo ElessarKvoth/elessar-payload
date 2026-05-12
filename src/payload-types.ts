@@ -69,6 +69,14 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    artists: Artist;
+    categories: Category;
+    records: Record;
+    apparel: Apparel;
+    products: Product;
+    customers: Customer;
+    orders: Order;
+    banners: Banner;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -78,6 +86,14 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    artists: ArtistsSelect<false> | ArtistsSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    records: RecordsSelect<false> | RecordsSelect<true>;
+    apparel: ApparelSelect<false> | ApparelSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    customers: CustomersSelect<false> | CustomersSelect<true>;
+    orders: OrdersSelect<false> | OrdersSelect<true>;
+    banners: BannersSelect<false> | BannersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -118,6 +134,8 @@ export interface UserAuthOperations {
   };
 }
 /**
+ * Usuários com acesso ao painel administrativo.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
@@ -143,12 +161,14 @@ export interface User {
   collection: 'users';
 }
 /**
+ * Biblioteca de imagens usadas nos produtos e banners.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
   id: number;
-  alt: string;
+  alt?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -160,6 +180,489 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * Cadastre os artistas e bandas dos produtos da loja.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "artists".
+ */
+export interface Artist {
+  id: number;
+  name: string;
+  /**
+   * Auto-generated from name. Can be overridden manually.
+   */
+  slug: string;
+  photo?: (number | null) | Media;
+  bio?: string | null;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Organize os produtos em categorias (ex: Rock, Jazz, Merchandise).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: number;
+  name: string;
+  /**
+   * Auto-generated from name. Can be overridden manually.
+   */
+  slug: string;
+  image?: (number | null) | Media;
+  description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Vinis, CDs e outros formatos de áudio.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "records".
+ */
+export interface Record {
+  id: number;
+  title: string;
+  /**
+   * Gerado automaticamente a partir do título.
+   */
+  slug: string;
+  shortDescription: string;
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Em centavos. Ex: 4990 = R$49,90.
+   */
+  price: number;
+  /**
+   * Deixe vazio se não houver promoção.
+   */
+  salePrice?: number | null;
+  stock: number;
+  /**
+   * Código único do produto.
+   */
+  sku: string;
+  format: 'lp' | 'ep' | 'single_7' | 'compacto_10' | 'single_12' | 'cd' | 'cd_duplo' | 'box_set' | 'cassete';
+  condition: 'new' | 'used' | 'sealed' | 'rare' | 'imported' | 'collectible';
+  artist: number | Artist;
+  category: number | Category;
+  /**
+   * Ano original de lançamento do álbum.
+   */
+  releaseYear?: number | null;
+  /**
+   * Ex: Atlantic, Warner, Som Livre.
+   */
+  recordLabel?: string | null;
+  /**
+   * Lista de faixas do disco.
+   */
+  tracklist?:
+    | {
+        /**
+         * Ex: A1, A2, B1 (vinil) ou 1, 2, 3 (CD).
+         */
+        position?: string | null;
+        title: string;
+        /**
+         * Ex: 3:45.
+         */
+        duration?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  images: {
+    image: number | Media;
+    altText?: string | null;
+    id?: string | null;
+  }[];
+  featured?: boolean | null;
+  isRare?: boolean | null;
+  active?: boolean | null;
+  /**
+   * Usado para cálculo de frete.
+   */
+  weight?: number | null;
+  /**
+   * Em centímetros.
+   */
+  dimensions?: {
+    height?: number | null;
+    width?: number | null;
+    depth?: number | null;
+  };
+  seo?: {
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    ogImage?: (number | null) | Media;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Camisetas, moletons, bonés, pôsteres e acessórios com controle de estoque por tamanho.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "apparel".
+ */
+export interface Apparel {
+  id: number;
+  title: string;
+  /**
+   * Gerado automaticamente a partir do nome.
+   */
+  slug: string;
+  shortDescription: string;
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Em centavos. Ex: 5990 = R$59,90.
+   */
+  price: number;
+  /**
+   * Deixe vazio se não houver promoção.
+   */
+  salePrice?: number | null;
+  /**
+   * Código base do produto. Cada variante pode ter seu próprio SKU.
+   */
+  sku: string;
+  apparelType: 'tshirt' | 'hoodie' | 'jacket' | 'cap' | 'belt' | 'poster' | 'patch' | 'accessory';
+  condition: 'new' | 'used' | 'rare' | 'collectible';
+  /**
+   * Opcional. Preencha para camisetas e itens de bandas específicas.
+   */
+  artist?: (number | null) | Artist;
+  category: number | Category;
+  /**
+   * Adicione uma linha por combinação de tamanho e cor. Use "Tamanho Único" para pôsteres, bonés e acessórios sem numeração.
+   */
+  variants: {
+    size: 'PP' | 'P' | 'M' | 'G' | 'GG' | 'GGG' | 'unico';
+    /**
+     * Opcional. Ex: Preto, Branco, Cinza.
+     */
+    color?: string | null;
+    /**
+     * Opcional. Deixe vazio para usar o SKU base.
+     */
+    sku?: string | null;
+    stock: number;
+    id?: string | null;
+  }[];
+  /**
+   * Calculado automaticamente como soma de todas as variantes.
+   */
+  totalStock?: number | null;
+  images: {
+    image: number | Media;
+    altText?: string | null;
+    id?: string | null;
+  }[];
+  featured?: boolean | null;
+  isRare?: boolean | null;
+  active?: boolean | null;
+  /**
+   * Usado para cálculo de frete.
+   */
+  weight?: number | null;
+  seo?: {
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    ogImage?: (number | null) | Media;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Cadastre e gerencie todos os produtos à venda — vinis, CDs e camisetas.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  title: string;
+  /**
+   * Auto-generated from title. Can be overridden manually.
+   */
+  slug: string;
+  shortDescription: string;
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Price in cents (e.g. 2990 = R$29.90).
+   */
+  price: number;
+  /**
+   * Optional promotional price in cents. Must be less than the regular price.
+   */
+  salePrice?: number | null;
+  /**
+   * Current units in stock. Reaching 0 auto-deactivates the product.
+   */
+  stock: number;
+  /**
+   * Unique Stock Keeping Unit code.
+   */
+  sku: string;
+  productType: 'vinyl' | 'cd' | 'tshirt';
+  condition: 'new' | 'used' | 'rare' | 'imported' | 'sealed' | 'collectible';
+  artist: number | Artist;
+  category: number | Category;
+  images: {
+    image: number | Media;
+    altText?: string | null;
+    id?: string | null;
+  }[];
+  /**
+   * Pin this product to the homepage highlights section.
+   */
+  featured?: boolean | null;
+  /**
+   * Surface this product in the rarities section.
+   */
+  isRare?: boolean | null;
+  active?: boolean | null;
+  /**
+   * Weight in grams. Used for shipping calculations.
+   */
+  weight?: number | null;
+  /**
+   * Physical dimensions in centimetres.
+   */
+  dimensions?: {
+    /**
+     * cm
+     */
+    height?: number | null;
+    /**
+     * cm
+     */
+    width?: number | null;
+    /**
+     * cm
+     */
+    depth?: number | null;
+  };
+  seo?: {
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    ogImage?: (number | null) | Media;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Lista de clientes cadastrados com endereços de entrega.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers".
+ */
+export interface Customer {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string | null;
+  addresses?:
+    | {
+        label?: string | null;
+        street: string;
+        number: string;
+        complement?: string | null;
+        neighborhood: string;
+        city: string;
+        /**
+         * Brazilian UF code (e.g. SP, RJ, MG).
+         */
+        state: string;
+        /**
+         * Brazilian CEP format (e.g. 01310-100).
+         */
+        zipCode: string;
+        isDefault?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Acompanhe e gerencie todos os pedidos da loja.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders".
+ */
+export interface Order {
+  id: number;
+  /**
+   * Gerado automaticamente. Formato: ER-<timestamp>.
+   */
+  orderNumber: string;
+  customer: number | Customer;
+  items: {
+    product:
+      | {
+          relationTo: 'records';
+          value: number | Record;
+        }
+      | {
+          relationTo: 'apparel';
+          value: number | Apparel;
+        };
+    /**
+     * Obrigatório para vestuário. Ex: M, G, Tamanho Único.
+     */
+    variantSize?: string | null;
+    /**
+     * Obrigatório se o vestuário tiver opções de cor.
+     */
+    variantColor?: string | null;
+    quantity: number;
+    /**
+     * Preço no momento da compra. Não muda com o produto.
+     */
+    unitPrice: number;
+    productTitle: string;
+    productSku: string;
+    id?: string | null;
+  }[];
+  /**
+   * Calculado automaticamente a partir dos itens.
+   */
+  subtotal: number;
+  shipping?: number | null;
+  discount?: number | null;
+  /**
+   * Calculado: subtotal + frete − desconto.
+   */
+  total: number;
+  status: 'pending' | 'confirmed' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  paymentMethod?: ('pix' | 'credit_card' | 'boleto' | 'other') | null;
+  paymentStatus?: ('unpaid' | 'paid' | 'refunded' | 'chargeback') | null;
+  /**
+   * ID externo do gateway de pagamento.
+   */
+  paymentId?: string | null;
+  /**
+   * Snapshot do endereço no momento do pedido.
+   */
+  shippingAddress?: {
+    street?: string | null;
+    number?: string | null;
+    complement?: string | null;
+    neighborhood?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipCode?: string | null;
+  };
+  /**
+   * Notas internas do admin. Não visível ao cliente.
+   */
+  notes?: string | null;
+  /**
+   * Mensagem enviada pelo cliente no checkout.
+   */
+  customerNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Gerencie os banners e promoções exibidos no site.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "banners".
+ */
+export interface Banner {
+  id: number;
+  title: string;
+  subtitle?: string | null;
+  image: number | Media;
+  /**
+   * Internal path (e.g. /products/slug) or external URL.
+   */
+  link?: string | null;
+  /**
+   * CTA button text (e.g. "Shop Now").
+   */
+  linkLabel?: string | null;
+  active?: boolean | null;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  /**
+   * Optional. Banner will not show before this date.
+   */
+  startsAt?: string | null;
+  /**
+   * Optional. Banner will not show after this date.
+   */
+  endsAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -192,6 +695,38 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'artists';
+        value: number | Artist;
+      } | null)
+    | ({
+        relationTo: 'categories';
+        value: number | Category;
+      } | null)
+    | ({
+        relationTo: 'records';
+        value: number | Record;
+      } | null)
+    | ({
+        relationTo: 'apparel';
+        value: number | Apparel;
+      } | null)
+    | ({
+        relationTo: 'products';
+        value: number | Product;
+      } | null)
+    | ({
+        relationTo: 'customers';
+        value: number | Customer;
+      } | null)
+    | ({
+        relationTo: 'orders';
+        value: number | Order;
+      } | null)
+    | ({
+        relationTo: 'banners';
+        value: number | Banner;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -274,6 +809,287 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "artists_select".
+ */
+export interface ArtistsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  photo?: T;
+  bio?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  image?: T;
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "records_select".
+ */
+export interface RecordsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  shortDescription?: T;
+  description?: T;
+  price?: T;
+  salePrice?: T;
+  stock?: T;
+  sku?: T;
+  format?: T;
+  condition?: T;
+  artist?: T;
+  category?: T;
+  releaseYear?: T;
+  recordLabel?: T;
+  tracklist?:
+    | T
+    | {
+        position?: T;
+        title?: T;
+        duration?: T;
+        id?: T;
+      };
+  images?:
+    | T
+    | {
+        image?: T;
+        altText?: T;
+        id?: T;
+      };
+  featured?: T;
+  isRare?: T;
+  active?: T;
+  weight?: T;
+  dimensions?:
+    | T
+    | {
+        height?: T;
+        width?: T;
+        depth?: T;
+      };
+  seo?:
+    | T
+    | {
+        metaTitle?: T;
+        metaDescription?: T;
+        ogImage?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "apparel_select".
+ */
+export interface ApparelSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  shortDescription?: T;
+  description?: T;
+  price?: T;
+  salePrice?: T;
+  sku?: T;
+  apparelType?: T;
+  condition?: T;
+  artist?: T;
+  category?: T;
+  variants?:
+    | T
+    | {
+        size?: T;
+        color?: T;
+        sku?: T;
+        stock?: T;
+        id?: T;
+      };
+  totalStock?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        altText?: T;
+        id?: T;
+      };
+  featured?: T;
+  isRare?: T;
+  active?: T;
+  weight?: T;
+  seo?:
+    | T
+    | {
+        metaTitle?: T;
+        metaDescription?: T;
+        ogImage?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  shortDescription?: T;
+  description?: T;
+  price?: T;
+  salePrice?: T;
+  stock?: T;
+  sku?: T;
+  productType?: T;
+  condition?: T;
+  artist?: T;
+  category?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        altText?: T;
+        id?: T;
+      };
+  featured?: T;
+  isRare?: T;
+  active?: T;
+  weight?: T;
+  dimensions?:
+    | T
+    | {
+        height?: T;
+        width?: T;
+        depth?: T;
+      };
+  seo?:
+    | T
+    | {
+        metaTitle?: T;
+        metaDescription?: T;
+        ogImage?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers_select".
+ */
+export interface CustomersSelect<T extends boolean = true> {
+  name?: T;
+  email?: T;
+  phone?: T;
+  addresses?:
+    | T
+    | {
+        label?: T;
+        street?: T;
+        number?: T;
+        complement?: T;
+        neighborhood?: T;
+        city?: T;
+        state?: T;
+        zipCode?: T;
+        isDefault?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders_select".
+ */
+export interface OrdersSelect<T extends boolean = true> {
+  orderNumber?: T;
+  customer?: T;
+  items?:
+    | T
+    | {
+        product?: T;
+        variantSize?: T;
+        variantColor?: T;
+        quantity?: T;
+        unitPrice?: T;
+        productTitle?: T;
+        productSku?: T;
+        id?: T;
+      };
+  subtotal?: T;
+  shipping?: T;
+  discount?: T;
+  total?: T;
+  status?: T;
+  paymentMethod?: T;
+  paymentStatus?: T;
+  paymentId?: T;
+  shippingAddress?:
+    | T
+    | {
+        street?: T;
+        number?: T;
+        complement?: T;
+        neighborhood?: T;
+        city?: T;
+        state?: T;
+        zipCode?: T;
+      };
+  notes?: T;
+  customerNotes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "banners_select".
+ */
+export interface BannersSelect<T extends boolean = true> {
+  title?: T;
+  subtitle?: T;
+  image?: T;
+  link?: T;
+  linkLabel?: T;
+  active?: T;
+  order?: T;
+  startsAt?: T;
+  endsAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
