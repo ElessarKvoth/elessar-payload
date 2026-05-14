@@ -71,9 +71,9 @@ export interface Config {
     media: Media;
     artists: Artist;
     categories: Category;
+    genres: Genre;
     records: Record;
     apparel: Apparel;
-    products: Product;
     customers: Customer;
     orders: Order;
     banners: Banner;
@@ -82,15 +82,19 @@ export interface Config {
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    genres: {
+      records: 'records';
+    };
+  };
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     artists: ArtistsSelect<false> | ArtistsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    genres: GenresSelect<false> | GenresSelect<true>;
     records: RecordsSelect<false> | RecordsSelect<true>;
     apparel: ApparelSelect<false> | ApparelSelect<true>;
-    products: ProductsSelect<false> | ProductsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     banners: BannersSelect<false> | BannersSelect<true>;
@@ -169,6 +173,10 @@ export interface User {
 export interface Media {
   id: number;
   alt?: string | null;
+  /**
+   * Preenchido automaticamente após o upload.
+   */
+  cloudinaryURL?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -180,24 +188,6 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
-  sizes?: {
-    thumbnail?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-    card?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-  };
 }
 /**
  * Cadastre os artistas e bandas dos produtos da loja.
@@ -233,6 +223,34 @@ export interface Category {
   slug: string;
   image?: (number | null) | Media;
   description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Gêneros musicais (ex: Heavy Metal, Doom, Punk).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "genres".
+ */
+export interface Genre {
+  id: number;
+  name: string;
+  /**
+   * Gerado automaticamente a partir do nome.
+   */
+  slug: string;
+  /**
+   * Breve descrição do gênero musical.
+   */
+  description?: string | null;
+  /**
+   * Discos vinculados a este gênero (somente leitura).
+   */
+  records?: {
+    docs?: (number | Record)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -278,10 +296,33 @@ export interface Record {
    * Código único do produto.
    */
   sku: string;
-  format: 'lp' | 'ep' | 'single_7' | 'compacto_10' | 'single_12' | 'cd' | 'cd_duplo' | 'box_set' | 'cassete';
-  condition: 'new' | 'used' | 'sealed' | 'rare' | 'imported' | 'collectible';
+  format: 'vinyl' | 'cd';
+  /**
+   * Prensagem especial. Só se aplica a formatos de vinil.
+   */
+  vinylModel?: ('black' | 'clear' | 'splatter' | 'picture_disc' | 'other') | null;
+  /**
+   * Descreva o modelo. Ex: Marmorizado Azul, Tie-Dye, Galaxy...
+   */
+  vinylModelCustom?: string | null;
+  condition: 'new' | 'used';
+  /**
+   * Pode selecionar mais de uma. Ex: Raro + Importado.
+   */
+  situation?:
+    | (
+        | 'rare'
+        | 'imported'
+        | 'sealed'
+        | 'collectible'
+        | 'limited_edition'
+        | 'anniversary_edition'
+        | 'remastered'
+        | 'colored_vinyl'
+      )[]
+    | null;
   artist: number | Artist;
-  category: number | Category;
+  genre?: (number | null) | Genre;
   /**
    * Ano original de lançamento do álbum.
    */
@@ -415,98 +456,6 @@ export interface Apparel {
    * Usado para cálculo de frete.
    */
   weight?: number | null;
-  seo?: {
-    metaTitle?: string | null;
-    metaDescription?: string | null;
-    ogImage?: (number | null) | Media;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Cadastre e gerencie todos os produtos à venda — vinis, CDs e camisetas.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "products".
- */
-export interface Product {
-  id: number;
-  title: string;
-  /**
-   * Auto-generated from title. Can be overridden manually.
-   */
-  slug: string;
-  shortDescription: string;
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  /**
-   * Price in cents (e.g. 2990 = R$29.90).
-   */
-  price: number;
-  /**
-   * Optional promotional price in cents. Must be less than the regular price.
-   */
-  salePrice?: number | null;
-  /**
-   * Current units in stock. Reaching 0 auto-deactivates the product.
-   */
-  stock: number;
-  /**
-   * Unique Stock Keeping Unit code.
-   */
-  sku: string;
-  productType: 'vinyl' | 'cd' | 'tshirt';
-  condition: 'new' | 'used' | 'rare' | 'imported' | 'sealed' | 'collectible';
-  artist: number | Artist;
-  category: number | Category;
-  images: {
-    image: number | Media;
-    altText?: string | null;
-    id?: string | null;
-  }[];
-  /**
-   * Pin this product to the homepage highlights section.
-   */
-  featured?: boolean | null;
-  /**
-   * Surface this product in the rarities section.
-   */
-  isRare?: boolean | null;
-  active?: boolean | null;
-  /**
-   * Weight in grams. Used for shipping calculations.
-   */
-  weight?: number | null;
-  /**
-   * Physical dimensions in centimetres.
-   */
-  dimensions?: {
-    /**
-     * cm
-     */
-    height?: number | null;
-    /**
-     * cm
-     */
-    width?: number | null;
-    /**
-     * cm
-     */
-    depth?: number | null;
-  };
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -705,16 +654,16 @@ export interface PayloadLockedDocument {
         value: number | Category;
       } | null)
     | ({
+        relationTo: 'genres';
+        value: number | Genre;
+      } | null)
+    | ({
         relationTo: 'records';
         value: number | Record;
       } | null)
     | ({
         relationTo: 'apparel';
         value: number | Apparel;
-      } | null)
-    | ({
-        relationTo: 'products';
-        value: number | Product;
       } | null)
     | ({
         relationTo: 'customers';
@@ -798,6 +747,7 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  cloudinaryURL?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -809,30 +759,6 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
-  sizes?:
-    | T
-    | {
-        thumbnail?:
-          | T
-          | {
-              url?: T;
-              width?: T;
-              height?: T;
-              mimeType?: T;
-              filesize?: T;
-              filename?: T;
-            };
-        card?:
-          | T
-          | {
-              url?: T;
-              width?: T;
-              height?: T;
-              mimeType?: T;
-              filesize?: T;
-              filename?: T;
-            };
-      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -861,6 +787,18 @@ export interface CategoriesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "genres_select".
+ */
+export interface GenresSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  description?: T;
+  records?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "records_select".
  */
 export interface RecordsSelect<T extends boolean = true> {
@@ -873,9 +811,12 @@ export interface RecordsSelect<T extends boolean = true> {
   stock?: T;
   sku?: T;
   format?: T;
+  vinylModel?: T;
+  vinylModelCustom?: T;
   condition?: T;
+  situation?: T;
   artist?: T;
-  category?: T;
+  genre?: T;
   releaseYear?: T;
   recordLabel?: T;
   tracklist?:
@@ -951,51 +892,6 @@ export interface ApparelSelect<T extends boolean = true> {
   isRare?: T;
   active?: T;
   weight?: T;
-  seo?:
-    | T
-    | {
-        metaTitle?: T;
-        metaDescription?: T;
-        ogImage?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "products_select".
- */
-export interface ProductsSelect<T extends boolean = true> {
-  title?: T;
-  slug?: T;
-  shortDescription?: T;
-  description?: T;
-  price?: T;
-  salePrice?: T;
-  stock?: T;
-  sku?: T;
-  productType?: T;
-  condition?: T;
-  artist?: T;
-  category?: T;
-  images?:
-    | T
-    | {
-        image?: T;
-        altText?: T;
-        id?: T;
-      };
-  featured?: T;
-  isRare?: T;
-  active?: T;
-  weight?: T;
-  dimensions?:
-    | T
-    | {
-        height?: T;
-        width?: T;
-        depth?: T;
-      };
   seo?:
     | T
     | {

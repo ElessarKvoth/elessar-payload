@@ -14,7 +14,7 @@ import { Apparel } from './collections/Apparel'
 import { Customers } from './collections/Customers'
 import { Orders } from './collections/Orders'
 import { Banners } from './collections/Banners'
-import { Products } from './collections/Products'
+import { Genres } from './collections/Genres'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -26,7 +26,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Artists, Categories, Records, Apparel, Products, Customers, Orders, Banners],
+  collections: [Users, Media, Artists, Categories, Genres, Records, Apparel, Customers, Orders, Banners],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
@@ -39,7 +39,7 @@ export default buildConfig({
   }),
   upload: {
     limits: {
-      fileSize: 5_000_000, // 5 MB
+      fileSize: 4_400_000, // 4.4 MB (Vercel serverless body limit)
     },
   },
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL,

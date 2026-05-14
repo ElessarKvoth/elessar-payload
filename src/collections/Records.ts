@@ -6,27 +6,37 @@ import { generateSlug } from '../utils/generateSlug'
 
 // CollectionSlug cast required until `payload generate:types` is run with all collections registered.
 const ARTISTS_SLUG = 'artists' as CollectionSlug
-const CATEGORIES_SLUG = 'categories' as CollectionSlug
+const GENRES_SLUG = 'genres' as CollectionSlug
 
 const FORMATS = [
-  { label: 'LP (12")', value: 'lp' },
-  { label: 'EP', value: 'ep' },
-  { label: 'Single (7")', value: 'single_7' },
-  { label: 'Compacto (10")', value: 'compacto_10' },
-  { label: '12" Single', value: 'single_12' },
+  { label: 'Vinyl', value: 'vinyl' },
   { label: 'CD', value: 'cd' },
-  { label: 'CD Duplo', value: 'cd_duplo' },
-  { label: 'Box Set', value: 'box_set' },
-  { label: 'Cassete / K7', value: 'cassete' },
 ]
 
 const CONDITIONS = [
   { label: 'Novo', value: 'new' },
   { label: 'Usado', value: 'used' },
-  { label: 'Lacrado', value: 'sealed' },
+]
+
+const VINYL_FORMATS = new Set(['vinyl'])
+
+const VINYL_MODELS = [
+  { label: 'Preto (Padrão)', value: 'black' },
+  { label: 'Clear (Transparente)', value: 'clear' },
+  { label: 'Splatter', value: 'splatter' },
+  { label: 'Picture Disc', value: 'picture_disc' },
+  { label: 'Outro', value: 'other' },
+]
+
+const SITUATIONS = [
   { label: 'Raro', value: 'rare' },
   { label: 'Importado', value: 'imported' },
+  { label: 'Lacrado', value: 'sealed' },
   { label: 'Colecionável', value: 'collectible' },
+  { label: 'Edição Limitada', value: 'limited_edition' },
+  { label: 'Edição de Aniversário', value: 'anniversary_edition' },
+  { label: 'Remasterizado', value: 'remastered' },
+  { label: 'Colorido', value: 'colored_vinyl' },
 ]
 
 export const Records: CollectionConfig = {
@@ -39,7 +49,7 @@ export const Records: CollectionConfig = {
     useAsTitle: 'title',
     group: 'Catálogo',
     description: 'Vinis, CDs e outros formatos de áudio.',
-    defaultColumns: ['title', 'format', 'artist', 'condition', 'stock', 'active', 'featured'],
+    defaultColumns: ['title', 'format', 'artist', 'genre', 'condition', 'stock', 'active', 'featured'],
   },
   access: {
     read: ({ req: { user } }) => {
@@ -156,11 +166,38 @@ export const Records: CollectionConfig = {
       options: FORMATS,
     },
     {
+      name: 'vinylModel',
+      label: 'Modelo do Vinil',
+      type: 'select',
+      options: VINYL_MODELS,
+      admin: {
+        description: 'Prensagem especial. Só se aplica a formatos de vinil.',
+        condition: (data) => VINYL_FORMATS.has(data?.format),
+      },
+    },
+    {
+      name: 'vinylModelCustom',
+      label: 'Modelo Personalizado',
+      type: 'text',
+      admin: {
+        description: 'Descreva o modelo. Ex: Marmorizado Azul, Tie-Dye, Galaxy...',
+        condition: (data) => VINYL_FORMATS.has(data?.format) && data?.vinylModel === 'other',
+      },
+    },
+    {
       name: 'condition',
       label: 'Estado',
       type: 'select',
       required: true,
       options: CONDITIONS,
+    },
+    {
+      name: 'situation',
+      label: 'Situação',
+      type: 'select',
+      hasMany: true,
+      options: SITUATIONS,
+      admin: { description: 'Pode selecionar mais de uma. Ex: Raro + Importado.' },
     },
     {
       name: 'artist',
@@ -170,11 +207,10 @@ export const Records: CollectionConfig = {
       required: true,
     },
     {
-      name: 'category',
-      label: 'Categoria',
+      name: 'genre',
+      label: 'Gênero Musical',
       type: 'relationship',
-      relationTo: CATEGORIES_SLUG,
-      required: true,
+      relationTo: GENRES_SLUG,
     },
     {
       name: 'releaseYear',

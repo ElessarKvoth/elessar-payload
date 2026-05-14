@@ -1,6 +1,61 @@
 // @ts-nocheck
 import type { Payload, CollectionSlug } from 'payload'
 import sharp from 'sharp'
+import cloudinary from '../lib/cloudinary'
+
+// ─── color helpers ─────────────────────────────────────────────────────────────
+
+function hue2rgb(p: number, q: number, t: number): number {
+  if (t < 0) t += 1
+  if (t > 1) t -= 1
+  if (t < 1 / 6) return p + (q - p) * 6 * t
+  if (t < 1 / 2) return q
+  if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+  return p
+}
+
+function palette(i: number): { r: number; g: number; b: number } {
+  const h = ((i * 137.508) % 360) / 360
+  const s = 0.65
+  const l = 0.42
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+  const p = 2 * l - q
+  return {
+    r: Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
+    g: Math.round(hue2rgb(p, q, h) * 255),
+    b: Math.round(hue2rgb(p, q, h - 1 / 3) * 255),
+  }
+}
+
+async function createMedia(
+  payload: Payload,
+  name: string,
+  colorIndex: number,
+): Promise<string | number> {
+  const color = palette(colorIndex)
+  const buf = await sharp({
+    create: { width: 200, height: 200, channels: 3, background: color },
+  })
+    .jpeg({ quality: 80 })
+    .toBuffer()
+
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60)
+
+  // Payload exige `file` em upload collections — o beforeChange hook
+  // faz o upload pro Cloudinary (singleton já reconfigurado no início do runSeed).
+  const doc = await payload.create({
+    collection: 'media',
+    data: { alt: name },
+    file: { data: buf, mimetype: 'image/jpeg', name: `${slug}.jpg`, size: buf.length },
+    overrideAccess: true,
+  })
+
+  return doc.id
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -27,6 +82,38 @@ function richText(text: string) {
 }
 
 // ─── data ─────────────────────────────────────────────────────────────────────
+
+const GENRES = [
+  { name: 'Rock',             desc: 'O gênero que definiu gerações.' },
+  { name: 'Rock Nacional',    desc: 'Rock brasileiro em toda sua força e potência.' },
+  { name: 'Hard Rock',        desc: 'Rock pesado, poderoso e com riffs icônicos.' },
+  { name: 'Heavy Metal',      desc: 'Metal clássico com distorção máxima.' },
+  { name: 'Power Metal',      desc: 'Metal épico, veloz e com vocais potentes.' },
+  { name: 'Death Metal',      desc: 'Metal extremo, riffs rápidos e vocais guturais.' },
+  { name: 'Doom Metal',       desc: 'Metal lento, sombrio e denso.' },
+  { name: 'Rock Progressivo', desc: 'Rock experimental e instrumentalmente elaborado.' },
+  { name: 'Glam Rock',        desc: 'Rock teatral e extravagante dos anos 70.' },
+  { name: 'Grunge',           desc: 'O som cru e angustiado de Seattle nos anos 90.' },
+  { name: 'Punk Rock',        desc: 'Velocidade, atitude e rebeldia pura.' },
+  { name: 'New Wave',         desc: 'Pós-punk e pop eletrônico dos anos 80.' },
+  { name: 'Alternative Rock', desc: 'Rock fora do mainstream comercial.' },
+  { name: 'Indie Rock',       desc: 'Rock independente e autoral.' },
+  { name: 'Pop Rock',         desc: 'A fusão acessível do rock com o pop.' },
+  { name: 'Soft Rock',        desc: 'Rock melódico, suave e emocional.' },
+  { name: 'Pop',              desc: 'Músicas catchy e acessíveis para todos.' },
+  { name: 'MPB',              desc: 'Música Popular Brasileira em toda sua riqueza.' },
+  { name: 'Tropicalismo',     desc: 'O movimento que revolucionou a música brasileira nos anos 60.' },
+  { name: 'Psicodélico',      desc: 'Som expansivo, experimental e lisérgico.' },
+  { name: 'Jazz',             desc: 'Improviso, complexidade harmônica e elegância.' },
+  { name: 'Jazz Fusion',      desc: 'Jazz mesclado com rock, funk e música eletrônica.' },
+  { name: 'Blues',            desc: 'A raiz de toda música moderna ocidental.' },
+  { name: 'Soul',             desc: 'Emoção, groove e herança afro-americana.' },
+  { name: 'Funk',             desc: 'Ritmo, baixo pesado e dança.' },
+  { name: 'Reggae',           desc: 'Jamaica, paz, resistência e roots.' },
+  { name: 'Ska',              desc: 'O precursor jamaicano do reggae.' },
+  { name: 'Bossa Nova',       desc: 'Samba, jazz e a sofisticação carioca.' },
+  { name: 'Samba',            desc: 'O ritmo que define a identidade do Brasil.' },
+]
 
 const CATEGORIES = [
   { name: 'Rock Nacional',       desc: 'O melhor do rock brasileiro, de Legião Urbana a Sepultura.' },
@@ -75,26 +162,26 @@ const ARTISTS = [
 ]
 
 const RECORDS = [
-  { title: 'Que País É Este',                     artist: 'Legião Urbana',      category: 'Rock Nacional',       format: 'lp',  condition: 'used',        year: 1987, label: 'EMI',                 price: 8990,  stock: 5,  sku: 'REC-001', desc: 'Álbum marcante da fase madura da Legião Urbana.',            featured: true },
-  { title: 'O Tempo Não Pára',                    artist: 'Cazuza',             category: 'Rock Nacional',       format: 'lp',  condition: 'collectible',  year: 1988, label: 'PolyGram',            price: 12990, stock: 3,  sku: 'REC-002', desc: 'Clássico de Cazuza com letras poéticas e viscerais.' },
-  { title: 'Krig-ha, Bandolo!',                   artist: 'Raul Seixas',        category: 'Rock Nacional',       format: 'lp',  condition: 'rare',         year: 1973, label: 'Philips',             price: 24990, stock: 2,  sku: 'REC-003', desc: 'O álbum de estreia solo do Maluco Beleza.',                  isRare: true },
-  { title: 'Cabeça Dinossauro',                   artist: 'Titãs',              category: 'Rock Nacional',       format: 'lp',  condition: 'used',         year: 1986, label: 'WEA',                 price: 9990,  stock: 4,  sku: 'REC-004', desc: 'O álbum mais pesado e político dos Titãs.' },
-  { title: 'Os Mutantes',                         artist: 'Os Mutantes',        category: 'Rock Nacional',       format: 'lp',  condition: 'collectible',  year: 1968, label: 'Polydor',             price: 34990, stock: 1,  sku: 'REC-005', desc: 'Álbum de estreia psicodélico, marco do Tropicalismo.',       isRare: true },
-  { title: 'Tropicália ou Panis et Circencis',    artist: 'Caetano Veloso',     category: 'MPB',                 format: 'lp',  condition: 'collectible',  year: 1968, label: 'Philips',             price: 29990, stock: 2,  sku: 'REC-006', desc: 'O manifesto do Tropicalismo em forma de disco.',            featured: true },
-  { title: 'Expresso 2222',                       artist: 'Gilberto Gil',       category: 'MPB',                 format: 'lp',  condition: 'used',         year: 1972, label: 'Philips',             price: 14990, stock: 5,  sku: 'REC-007', desc: 'Disco fundamental de Gilberto Gil.' },
-  { title: 'Construção',                          artist: 'Chico Buarque',      category: 'MPB',                 format: 'lp',  condition: 'collectible',  year: 1971, label: 'Philips',             price: 19990, stock: 3,  sku: 'REC-008', desc: 'Obra-prima de Chico Buarque com letras magistrais.',        featured: true },
-  { title: 'Tim Maia',                            artist: 'Tim Maia',           category: 'Soul & Funk',         format: 'lp',  condition: 'used',         year: 1970, label: 'Polydor',             price: 13990, stock: 4,  sku: 'REC-009', desc: 'O álbum de estreia do Síndico do Soul brasileiro.' },
-  { title: 'Abbey Road',                          artist: 'The Beatles',        category: 'Rock Internacional',  format: 'lp',  condition: 'new',          year: 1969, label: 'Apple',               price: 19990, stock: 10, sku: 'REC-010', desc: 'O penúltimo álbum dos Beatles, um clássico absoluto.' },
-  { title: 'Led Zeppelin IV',                     artist: 'Led Zeppelin',       category: 'Rock Internacional',  format: 'lp',  condition: 'collectible',  year: 1971, label: 'Atlantic',            price: 27990, stock: 3,  sku: 'REC-011', desc: 'Stairway to Heaven. O resto é história.' },
-  { title: 'The Dark Side of the Moon',           artist: 'Pink Floyd',         category: 'Rock Internacional',  format: 'lp',  condition: 'imported',     year: 1973, label: 'Harvest',             price: 32990, stock: 5,  sku: 'REC-012', desc: 'O disco mais vendido da história do rock.',                 featured: true },
-  { title: 'Sticky Fingers',                      artist: 'The Rolling Stones', category: 'Rock Internacional',  format: 'lp',  condition: 'used',         year: 1971, label: 'Rolling Stones Rec.', price: 11990, stock: 6,  sku: 'REC-013', desc: 'Com a famosa capa de Andy Warhol.' },
-  { title: 'The Rise and Fall of Ziggy Stardust', artist: 'David Bowie',        category: 'Rock Internacional',  format: 'lp',  condition: 'collectible',  year: 1972, label: 'RCA',                 price: 24990, stock: 3,  sku: 'REC-014', desc: 'A obra-prima glam rock de David Bowie.' },
-  { title: 'Nevermind',                           artist: 'Nirvana',            category: 'Rock Internacional',  format: 'lp',  condition: 'used',         year: 1991, label: 'DGC',                 price: 14990, stock: 7,  sku: 'REC-015', desc: 'O disco que mudou o rock nos anos 90.' },
-  { title: 'OK Computer',                         artist: 'Radiohead',          category: 'Indie & Alternativo', format: 'cd',  condition: 'new',          year: 1997, label: 'Parlophone',          price: 7990,  stock: 12, sku: 'REC-016', desc: 'Uma meditação sobre a era digital e a alienação.' },
-  { title: 'London Calling',                      artist: 'The Clash',          category: 'Punk Rock',           format: 'lp',  condition: 'imported',     year: 1979, label: 'CBS',                 price: 18990, stock: 4,  sku: 'REC-017', desc: 'O álbum definitivo do punk rock britânico.' },
-  { title: 'Legend: The Best of Bob Marley',      artist: 'Bob Marley',         category: 'Reggae',              format: 'cd',  condition: 'new',          year: 1984, label: 'Island',              price: 6990,  stock: 15, sku: 'REC-018', desc: 'A coletânea essencial de Bob Marley.' },
-  { title: 'Kind of Blue',                        artist: 'Miles Davis',        category: 'Jazz',                format: 'lp',  condition: 'collectible',  year: 1959, label: 'Columbia',            price: 34990, stock: 2,  sku: 'REC-019', desc: 'O álbum de jazz mais vendido de todos os tempos.',           isRare: true },
-  { title: 'Bitches Brew',                        artist: 'Miles Davis',        category: 'Jazz',                format: 'lp',  condition: 'rare',         year: 1970, label: 'Columbia',            price: 44990, stock: 1,  sku: 'REC-020', desc: 'A obra que fundou o jazz fusion.',                           isRare: true },
+  { title: 'Que País É Este',                     artist: 'Legião Urbana',      genre: 'Rock Nacional',    format: 'vinyl', condition: 'used', situation: [],                               year: 1987, label: 'EMI',                 price: 8990,  stock: 5,  sku: 'REC-001', desc: 'Álbum marcante da fase madura da Legião Urbana.',           featured: true },
+  { title: 'O Tempo Não Pára',                    artist: 'Cazuza',             genre: 'Rock Nacional',    format: 'vinyl', condition: 'used', situation: ['collectible'],                   year: 1988, label: 'PolyGram',            price: 12990, stock: 3,  sku: 'REC-002', desc: 'Clássico de Cazuza com letras poéticas e viscerais.' },
+  { title: 'Krig-ha, Bandolo!',                   artist: 'Raul Seixas',        genre: 'Rock Nacional',    format: 'vinyl', condition: 'used', situation: ['rare'],                          year: 1973, label: 'Philips',             price: 24990, stock: 2,  sku: 'REC-003', desc: 'O álbum de estreia solo do Maluco Beleza.',                 isRare: true },
+  { title: 'Cabeça Dinossauro',                   artist: 'Titãs',              genre: 'Punk Rock',        format: 'vinyl', condition: 'used', situation: [],                               year: 1986, label: 'WEA',                 price: 9990,  stock: 4,  sku: 'REC-004', desc: 'O álbum mais pesado e político dos Titãs.' },
+  { title: 'Os Mutantes',                         artist: 'Os Mutantes',        genre: 'Psicodélico',      format: 'vinyl', condition: 'used', situation: ['collectible', 'rare'],           year: 1968, label: 'Polydor',             price: 34990, stock: 1,  sku: 'REC-005', desc: 'Álbum de estreia psicodélico, marco do Tropicalismo.',      isRare: true },
+  { title: 'Tropicália ou Panis et Circencis',    artist: 'Caetano Veloso',     genre: 'Tropicalismo',     format: 'vinyl', condition: 'used', situation: ['collectible'],                   year: 1968, label: 'Philips',             price: 29990, stock: 2,  sku: 'REC-006', desc: 'O manifesto do Tropicalismo em forma de disco.',            featured: true },
+  { title: 'Expresso 2222',                       artist: 'Gilberto Gil',       genre: 'MPB',              format: 'vinyl', condition: 'used', situation: [],                               year: 1972, label: 'Philips',             price: 14990, stock: 5,  sku: 'REC-007', desc: 'Disco fundamental de Gilberto Gil.' },
+  { title: 'Construção',                          artist: 'Chico Buarque',      genre: 'MPB',              format: 'vinyl', condition: 'used', situation: ['collectible'],                   year: 1971, label: 'Philips',             price: 19990, stock: 3,  sku: 'REC-008', desc: 'Obra-prima de Chico Buarque com letras magistrais.',        featured: true },
+  { title: 'Tim Maia',                            artist: 'Tim Maia',           genre: 'Soul',             format: 'vinyl', condition: 'used', situation: [],                               year: 1970, label: 'Polydor',             price: 13990, stock: 4,  sku: 'REC-009', desc: 'O álbum de estreia do Síndico do Soul brasileiro.' },
+  { title: 'Abbey Road',                          artist: 'The Beatles',        genre: 'Rock',             format: 'vinyl', condition: 'new',  situation: ['remastered'],                   year: 1969, label: 'Apple',               price: 19990, stock: 10, sku: 'REC-010', desc: 'O penúltimo álbum dos Beatles, um clássico absoluto.' },
+  { title: 'Led Zeppelin IV',                     artist: 'Led Zeppelin',       genre: 'Hard Rock',        format: 'vinyl', condition: 'used', situation: ['collectible'],                   year: 1971, label: 'Atlantic',            price: 27990, stock: 3,  sku: 'REC-011', desc: 'Stairway to Heaven. O resto é história.' },
+  { title: 'The Dark Side of the Moon',           artist: 'Pink Floyd',         genre: 'Rock Progressivo', format: 'vinyl', condition: 'used', situation: ['imported'],                      year: 1973, label: 'Harvest',             price: 32990, stock: 5,  sku: 'REC-012', desc: 'O disco mais vendido da história do rock.',                 featured: true },
+  { title: 'Sticky Fingers',                      artist: 'The Rolling Stones', genre: 'Rock',             format: 'vinyl', condition: 'used', situation: [],                               year: 1971, label: 'Rolling Stones Rec.', price: 11990, stock: 6,  sku: 'REC-013', desc: 'Com a famosa capa de Andy Warhol.' },
+  { title: 'The Rise and Fall of Ziggy Stardust', artist: 'David Bowie',        genre: 'Glam Rock',        format: 'vinyl', condition: 'used', situation: ['collectible', 'limited_edition'], year: 1972, label: 'RCA',                 price: 24990, stock: 3,  sku: 'REC-014', desc: 'A obra-prima glam rock de David Bowie.' },
+  { title: 'Nevermind',                           artist: 'Nirvana',            genre: 'Grunge',           format: 'vinyl', condition: 'used', situation: [],                               year: 1991, label: 'DGC',                 price: 14990, stock: 7,  sku: 'REC-015', desc: 'O disco que mudou o rock nos anos 90.' },
+  { title: 'OK Computer',                         artist: 'Radiohead',          genre: 'Alternative Rock', format: 'cd',    condition: 'new',  situation: ['remastered'],                   year: 1997, label: 'Parlophone',          price: 7990,  stock: 12, sku: 'REC-016', desc: 'Uma meditação sobre a era digital e a alienação.' },
+  { title: 'London Calling',                      artist: 'The Clash',          genre: 'Punk Rock',        format: 'vinyl', condition: 'used', situation: ['imported'],                      year: 1979, label: 'CBS',                 price: 18990, stock: 4,  sku: 'REC-017', desc: 'O álbum definitivo do punk rock britânico.' },
+  { title: 'Legend: The Best of Bob Marley',      artist: 'Bob Marley',         genre: 'Reggae',           format: 'cd',    condition: 'new',  situation: [],                               year: 1984, label: 'Island',              price: 6990,  stock: 15, sku: 'REC-018', desc: 'A coletânea essencial de Bob Marley.' },
+  { title: 'Kind of Blue',                        artist: 'Miles Davis',        genre: 'Jazz',             format: 'vinyl', condition: 'used', situation: ['collectible', 'rare'],           year: 1959, label: 'Columbia',            price: 34990, stock: 2,  sku: 'REC-019', desc: 'O álbum de jazz mais vendido de todos os tempos.',          isRare: true },
+  { title: 'Bitches Brew',                        artist: 'Miles Davis',        genre: 'Jazz Fusion',      format: 'vinyl', condition: 'used', situation: ['rare', 'collectible'],           year: 1970, label: 'Columbia',            price: 44990, stock: 1,  sku: 'REC-020', desc: 'A obra que fundou o jazz fusion.',                          isRare: true },
 ]
 
 const APPAREL = [
@@ -113,24 +200,6 @@ const APPAREL = [
   { title: 'Boné Elessar Records',                      type: 'cap',     condition: 'new', price: 4990,  sku: 'APP-013', cat: 'Merchandise', artist: null,                  desc: 'Boné bordado com logo da Elessar Records.',       sizes: ['unico'] },
   { title: 'Camiseta The Clash – London Calling',       type: 'tshirt',  condition: 'new', price: 8990,  sku: 'APP-014', cat: 'Merchandise', artist: 'The Clash',           desc: 'Camiseta com arte da capa de London Calling.',    sizes: ['P','M','G','GG'] },
   { title: 'Patch Elessar Records',                     type: 'patch',   condition: 'new', price: 1990,  sku: 'APP-015', cat: 'Merchandise', artist: null,                  desc: 'Patch bordado com o logo da Elessar Records.',    sizes: ['unico'] },
-]
-
-const PRODUCTS = [
-  { title: 'The Beatles – White Album (Vinil)',           type: 'vinyl',  condition: 'used',        price: 24990, stock: 3,  sku: 'PRD-001', artist: 'The Beatles',        cat: 'Rock Internacional', desc: 'O Álbum Branco em vinil duplo.' },
-  { title: 'Pink Floyd – Animals (Vinil)',                type: 'vinyl',  condition: 'imported',    price: 22990, stock: 4,  sku: 'PRD-002', artist: 'Pink Floyd',          cat: 'Rock Internacional', desc: 'Álbum conceitual de Roger Waters.', featured: true },
-  { title: 'Led Zeppelin – Physical Graffiti (Vinil)',    type: 'vinyl',  condition: 'collectible', price: 39990, stock: 2,  sku: 'PRD-003', artist: 'Led Zeppelin',        cat: 'Rock Internacional', desc: 'Álbum duplo monumental do Led Zeppelin.' },
-  { title: 'Caetano Veloso – Araçá Azul (Vinil)',        type: 'vinyl',  condition: 'rare',        price: 49990, stock: 1,  sku: 'PRD-004', artist: 'Caetano Veloso',      cat: 'MPB',                desc: 'Disco experimental e polêmico de Caetano.' },
-  { title: 'Nirvana – In Utero (CD)',                     type: 'cd',     condition: 'new',         price: 5990,  stock: 20, sku: 'PRD-005', artist: 'Nirvana',             cat: 'Rock Internacional', desc: 'O último álbum de estúdio do Nirvana.' },
-  { title: 'Radiohead – The Bends (CD)',                  type: 'cd',     condition: 'new',         price: 6990,  stock: 15, sku: 'PRD-006', artist: 'Radiohead',           cat: 'Indie & Alternativo',desc: 'O álbum que solidificou o Radiohead.' },
-  { title: 'Legião Urbana – V (CD)',                      type: 'cd',     condition: 'used',        price: 4990,  stock: 8,  sku: 'PRD-007', artist: 'Legião Urbana',       cat: 'Rock Nacional',      desc: 'O quinto álbum da Legião Urbana.' },
-  { title: 'Chico Buarque – Minha História (CD)',         type: 'cd',     condition: 'new',         price: 4990,  stock: 10, sku: 'PRD-008', artist: 'Chico Buarque',       cat: 'MPB',                desc: 'Coletânea dos grandes sucessos de Chico.' },
-  { title: 'Camiseta Legião Urbana – A Tempestade',       type: 'tshirt', condition: 'new',         price: 7990,  stock: 25, sku: 'PRD-009', artist: 'Legião Urbana',       cat: 'Merchandise',        desc: 'Camiseta com capa do álbum A Tempestade.' },
-  { title: 'Camiseta Miles Davis – Kind of Blue',         type: 'tshirt', condition: 'new',         price: 8990,  stock: 20, sku: 'PRD-010', artist: 'Miles Davis',         cat: 'Merchandise',        desc: 'Camiseta com arte do Kind of Blue.' },
-  { title: 'Bob Marley – Exodus (Vinil)',                 type: 'vinyl',  condition: 'used',        price: 16990, stock: 5,  sku: 'PRD-011', artist: 'Bob Marley',          cat: 'Reggae',             desc: 'Álbum clássico do reggae mundial.' },
-  { title: 'The Rolling Stones – Exile on Main St. (CD)', type: 'cd',     condition: 'new',         price: 7990,  stock: 12, sku: 'PRD-012', artist: 'The Rolling Stones',  cat: 'Rock Internacional', desc: 'O épico duplo álbum dos Stones.' },
-  { title: 'Titãs – Televisão (Vinil)',                   type: 'vinyl',  condition: 'used',        price: 12990, stock: 6,  sku: 'PRD-013', artist: 'Titãs',               cat: 'Rock Nacional',      desc: 'O álbum de estreia dos Titãs.' },
-  { title: 'David Bowie – Heroes (CD)',                   type: 'cd',     condition: 'new',         price: 6990,  stock: 14, sku: 'PRD-014', artist: 'David Bowie',         cat: 'Rock Internacional', desc: 'A trilogia de Berlim em formato CD.' },
-  { title: 'Camiseta Elessar Records – Vintage',          type: 'tshirt', condition: 'new',         price: 6990,  stock: 30, sku: 'PRD-015', artist: 'The Beatles',         cat: 'Merchandise',        desc: 'Camiseta vintage exclusiva da Elessar Records.', featured: true },
 ]
 
 const CUSTOMERS = [
@@ -169,7 +238,7 @@ const BANNERS = [
   { title: 'Beatles Collection',                      subtitle: 'Todos os álbuns em vinil disponíveis',     link: '/records',  linkLabel: 'Ver Beatles',   order: 10 },
   { title: 'Novos Moletons Chegaram',                 subtitle: 'Conforto e estilo para o inverno',         link: '/apparel',  linkLabel: 'Ver Moletons',  order: 11 },
   { title: 'Rock Internacional – Décadas de Ouro',    subtitle: 'Anos 60, 70, 80 e 90',                     link: '/records',  linkLabel: 'Explorar',      order: 12 },
-  { title: 'Presente para Quem Ama Música',           subtitle: 'Gift cards e kits especiais',              link: '/products', linkLabel: 'Ver Presentes', order: 13 },
+  { title: 'Presente para Quem Ama Música',           subtitle: 'Gift cards e kits especiais',              link: '/records',  linkLabel: 'Ver Presentes', order: 13 },
   { title: 'Box Sets Colecionáveis',                  subtitle: 'Para verdadeiros colecionadores',          link: '/records',  linkLabel: 'Ver Box Sets',  order: 14 },
   { title: 'Novidades em CDs',                        subtitle: 'A melhor seleção para seu acervo',         link: '/records',  linkLabel: 'Ver CDs',       order: 15 },
 ]
@@ -179,13 +248,66 @@ const BANNERS = [
 export async function runSeed(payload: Payload): Promise<Record<string, number>> {
   const counts: Record<string, number> = {}
 
-  // Guard: exige banco vazio para evitar conflitos de slug
-  const existing = await payload.find({ collection: 'categories', limit: 1, pagination: false, overrideAccess: true })
-  if (existing.totalDocs > 0) {
-    throw new Error('Banco não está vazio. Acesse /clear primeiro e depois /seed novamente.')
+  // Garante que as credenciais do Cloudinary são carregadas AGORA
+  // (o módulo pode ter inicializado antes do dotenv processar o .env)
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  })
+
+  // Diagnóstico: mostra quais vars estão presentes (nunca os valores)
+  console.log('→ Cloudinary env vars:', {
+    CLOUDINARY_CLOUD_NAME:  process.env.CLOUDINARY_CLOUD_NAME  ? '✓' : '✗ AUSENTE',
+    CLOUDINARY_API_KEY:     process.env.CLOUDINARY_API_KEY     ? '✓' : '✗ AUSENTE',
+    CLOUDINARY_API_SECRET:  process.env.CLOUDINARY_API_SECRET  ? '✓' : '✗ AUSENTE',
+  })
+
+  // Testa a conexão com o Cloudinary ANTES de criar qualquer coisa no banco.
+  // Se falhar aqui, nada é criado e não precisa rodar clear.
+  console.log('→ Testando conexão com Cloudinary...')
+  try {
+    const pingBuf = await sharp({
+      create: { width: 1, height: 1, channels: 3, background: { r: 0, g: 0, b: 0 } },
+    }).jpeg().toBuffer()
+    await cloudinary.uploader.upload(
+      `data:image/jpeg;base64,${pingBuf.toString('base64')}`,
+      { folder: 'elessar-records/seed', public_id: '_ping', overwrite: true, resource_type: 'image' },
+    )
+    console.log('✓ Cloudinary OK')
+  } catch (err: unknown) {
+    // O SDK do Cloudinary lança objetos simples, não instâncias de Error
+    let msg: string
+    if (err instanceof Error) {
+      msg = err.message
+    } else if (err !== null && typeof err === 'object') {
+      const o = err as Record<string, unknown>
+      const inner = (o.error ?? o) as Record<string, unknown>
+      msg = String(inner.message ?? JSON.stringify(inner))
+    } else {
+      msg = String(err)
+    }
+    throw new Error(`Cloudinary inacessível: ${msg}\nVerifique CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY e CLOUDINARY_API_SECRET no .env`)
   }
 
-  // 1. Categorias
+  const existing = await payload.find({ collection: 'categories', limit: 1, pagination: false, overrideAccess: true })
+  if (existing.totalDocs > 0) {
+    throw new Error('Banco não está vazio. Rode npm run clear primeiro.')
+  }
+
+  // 1. Gêneros musicais
+  const genreIds: Record<string, string | number> = {}
+  for (const g of GENRES) {
+    const doc = await payload.create({
+      collection: 'genres',
+      data: { name: g.name, description: g.desc },
+      overrideAccess: true,
+    })
+    genreIds[g.name] = doc.id
+  }
+  counts.genres = GENRES.length
+
+  // 2. Categorias
   const catIds: Record<string, string | number> = {}
   for (const cat of CATEGORIES) {
     const doc = await payload.create({ collection: 'categories', data: { name: cat.name, description: cat.desc }, overrideAccess: true })
@@ -193,32 +315,28 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
   }
   counts.categories = CATEGORIES.length
 
-  // 2. Artistas
+  // 3. Artistas — foto individual por artista
+  let colorIdx = 0
   const artistIds: Record<string, string | number> = {}
   for (const a of ARTISTS) {
-    const doc = await payload.create({ collection: 'artists', data: { name: a.name, bio: a.bio, active: true }, overrideAccess: true })
+    const photoId = await createMedia(payload, a.name, colorIdx++)
+    const doc = await payload.create({
+      collection: 'artists',
+      data: { name: a.name, bio: a.bio, active: true, photo: photoId },
+      overrideAccess: true,
+    })
     artistIds[a.name] = doc.id
   }
   counts.artists = ARTISTS.length
 
-  // 3. Media placeholder
-  const imgBuf = await sharp({ create: { width: 400, height: 400, channels: 3, background: { r: 28, g: 28, b: 28 } } }).png().toBuffer()
-  const mediaDoc = await payload.create({
-    collection: 'media',
-    data: { alt: 'Seed placeholder' },
-    file: { data: imgBuf, mimetype: 'image/png', name: 'seed-placeholder.png', size: imgBuf.length },
-    overrideAccess: true,
-  })
-  const mid = mediaDoc.id
-  counts.media = 1
-
-  // 4. Discos
+  // 4. Discos — imagem individual + genre linkado
   type DocRef = { id: string | number; price: number; title: string; sku: string; sizes?: string[] }
   const recordDocs: DocRef[] = []
   for (const rec of RECORDS) {
     const aId = artistIds[rec.artist]
-    const cId = catIds[rec.category]
-    if (!aId || !cId) continue
+    const gId = genreIds[rec.genre]
+    if (!aId) continue
+    const imgId = await createMedia(payload, rec.title, colorIdx++)
     const doc = await payload.create({
       collection: 'records',
       data: {
@@ -226,11 +344,14 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
         shortDescription: rec.desc,
         description: richText(`${rec.desc} Gravadora: ${rec.label}. Ano: ${rec.year}.`),
         price: rec.price, stock: rec.stock, sku: rec.sku, format: rec.format, condition: rec.condition,
-        artist: aId, category: cId, releaseYear: rec.year, recordLabel: rec.label,
+        ...(rec.situation.length > 0 ? { situation: rec.situation } : {}),
+        artist: aId,
+        ...(gId ? { genre: gId } : {}),
+        releaseYear: rec.year, recordLabel: rec.label,
         featured: ('featured' in rec) ? Boolean(rec.featured) : false,
         isRare: ('isRare' in rec) ? Boolean(rec.isRare) : false,
         active: true, weight: 300,
-        images: [{ image: mid, altText: rec.title }],
+        images: [{ image: imgId, altText: rec.title }],
       },
       overrideAccess: true,
     })
@@ -238,12 +359,13 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
   }
   counts.records = recordDocs.length
 
-  // 5. Vestuário
+  // 5. Vestuário — imagem individual por peça
   const apparelDocs: DocRef[] = []
   for (const app of APPAREL) {
     const cId = catIds[app.cat]
     const aId = app.artist ? artistIds[app.artist] : undefined
     if (!cId) continue
+    const imgId = await createMedia(payload, app.title, colorIdx++)
     const doc = await payload.create({
       collection: 'apparel',
       data: {
@@ -255,7 +377,7 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
         variants: app.sizes.map((size) => ({ size, color: 'Preto', stock: 5 })),
         featured: ('featured' in app) ? Boolean(app.featured) : false,
         active: true, weight: 200,
-        images: [{ image: mid, altText: app.title }],
+        images: [{ image: imgId, altText: app.title }],
       },
       overrideAccess: true,
     })
@@ -263,7 +385,7 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
   }
   counts.apparel = apparelDocs.length
 
-  // 7. Clientes
+  // 6. Clientes
   const customerIds: (string | number)[] = []
   for (const c of CUSTOMERS) {
     const doc = await payload.create({
@@ -278,7 +400,7 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
   }
   counts.customers = customerIds.length
 
-  // 8. Pedidos
+  // 7. Pedidos
   const STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
   const PAY_METHODS = ['pix', 'credit_card', 'boleto']
   for (let i = 0; i < 15; i++) {
@@ -306,16 +428,18 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
   }
   counts.orders = 15
 
-  // 9. Banners
+  // 8. Banners — imagem individual por banner
   for (const b of BANNERS) {
+    const imgId = await createMedia(payload, b.title, colorIdx++)
     await payload.create({
       collection: 'banners',
-      data: { title: b.title, subtitle: b.subtitle, image: mid, link: b.link, linkLabel: b.linkLabel, active: true, order: b.order },
+      data: { title: b.title, subtitle: b.subtitle, image: imgId, link: b.link, linkLabel: b.linkLabel, active: true, order: b.order },
       overrideAccess: true,
     })
   }
   counts.banners = BANNERS.length
 
+  counts.media = colorIdx
   return counts
 }
 
@@ -323,7 +447,19 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
 
 export async function runClear(payload: Payload): Promise<Record<string, number>> {
   const counts: Record<string, number> = {}
-  const slugs: CollectionSlug[] = ['orders', 'banners', 'records', 'apparel', 'customers', 'artists', 'categories', 'media']
+
+  // Ordem importa: deletar dependentes antes dos referenciados (FK constraints)
+  const slugs: CollectionSlug[] = [
+    'orders',
+    'banners',
+    'records',   // records → genres (FK), então genres vem depois
+    'apparel',
+    'customers',
+    'artists',
+    'genres',    // só depois que records foram deletados
+    'categories',
+    'media',
+  ]
 
   for (const slug of slugs) {
     const { docs } = await payload.find({ collection: slug, limit: 9999, depth: 0, overrideAccess: true })
