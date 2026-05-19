@@ -67,16 +67,16 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    users: User;
-    media: Media;
-    artists: Artist;
-    categories: Category;
-    genres: Genre;
     records: Record;
     apparel: Apparel;
-    customers: Customer;
-    orders: Order;
     banners: Banner;
+    artists: Artist;
+    genres: Genre;
+    categories: Category;
+    media: Media;
+    orders: Order;
+    customers: Customer;
+    users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -88,16 +88,16 @@ export interface Config {
     };
   };
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
-    media: MediaSelect<false> | MediaSelect<true>;
-    artists: ArtistsSelect<false> | ArtistsSelect<true>;
-    categories: CategoriesSelect<false> | CategoriesSelect<true>;
-    genres: GenresSelect<false> | GenresSelect<true>;
     records: RecordsSelect<false> | RecordsSelect<true>;
     apparel: ApparelSelect<false> | ApparelSelect<true>;
-    customers: CustomersSelect<false> | CustomersSelect<true>;
-    orders: OrdersSelect<false> | OrdersSelect<true>;
     banners: BannersSelect<false> | BannersSelect<true>;
+    artists: ArtistsSelect<false> | ArtistsSelect<true>;
+    genres: GenresSelect<false> | GenresSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
+    orders: OrdersSelect<false> | OrdersSelect<true>;
+    customers: CustomersSelect<false> | CustomersSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -107,8 +107,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    homepage: Homepage;
+  };
+  globalsSelect: {
+    homepage: HomepageSelect<false> | HomepageSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -136,123 +140,6 @@ export interface UserAuthOperations {
     email: string;
     password: string;
   };
-}
-/**
- * Usuários com acesso ao painel administrativo.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
-}
-/**
- * Biblioteca de imagens usadas nos produtos e banners.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: number;
-  alt?: string | null;
-  /**
-   * Preenchido automaticamente após o upload.
-   */
-  cloudinaryURL?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * Cadastre os artistas e bandas dos produtos da loja.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "artists".
- */
-export interface Artist {
-  id: number;
-  name: string;
-  /**
-   * Auto-generated from name. Can be overridden manually.
-   */
-  slug: string;
-  photo?: (number | null) | Media;
-  bio?: string | null;
-  active?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Organize os produtos em categorias (ex: Rock, Jazz, Merchandise).
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories".
- */
-export interface Category {
-  id: number;
-  name: string;
-  /**
-   * Auto-generated from name. Can be overridden manually.
-   */
-  slug: string;
-  image?: (number | null) | Media;
-  description?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Gêneros musicais (ex: Heavy Metal, Doom, Punk).
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "genres".
- */
-export interface Genre {
-  id: number;
-  name: string;
-  /**
-   * Gerado automaticamente a partir do nome.
-   */
-  slug: string;
-  /**
-   * Breve descrição do gênero musical.
-   */
-  description?: string | null;
-  /**
-   * Discos vinculados a este gênero (somente leitura).
-   */
-  records?: {
-    docs?: (number | Record)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * Vinis, CDs e outros formatos de áudio.
@@ -284,11 +171,11 @@ export interface Record {
     [k: string]: unknown;
   };
   /**
-   * Em centavos. Ex: 4990 = R$49,90.
+   * Valor em reais. Ex: 449.90
    */
   price: number;
   /**
-   * Deixe vazio se não houver promoção.
+   * Deixe vazio se não houver promoção. Ex: 299.90
    */
   salePrice?: number | null;
   stock: number;
@@ -353,8 +240,13 @@ export interface Record {
     altText?: string | null;
     id?: string | null;
   }[];
-  featured?: boolean | null;
+  /**
+   * Exibe o selo "RARO" no card do produto.
+   */
   isRare?: boolean | null;
+  /**
+   * Desmarque para ocultar o produto da loja sem excluir. Desativado automaticamente quando estoque chega a zero.
+   */
   active?: boolean | null;
   /**
    * Usado para cálculo de frete.
@@ -372,6 +264,82 @@ export interface Record {
     metaTitle?: string | null;
     metaDescription?: string | null;
     ogImage?: (number | null) | Media;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Cadastre os artistas e bandas dos produtos da loja.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "artists".
+ */
+export interface Artist {
+  id: number;
+  name: string;
+  /**
+   * Auto-generated from name. Can be overridden manually.
+   */
+  slug: string;
+  photo?: (number | null) | Media;
+  bio?: string | null;
+  /**
+   * Data de fundação da banda ou nascimento do artista. Usada para destacar automaticamente o artista mais próximo do aniversário na página de Artistas.
+   */
+  foundedAt?: string | null;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Biblioteca de imagens usadas nos produtos e banners.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  alt?: string | null;
+  /**
+   * Preenchido automaticamente após o upload.
+   */
+  cloudinaryURL?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * Gêneros musicais (ex: Heavy Metal, Doom, Punk).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "genres".
+ */
+export interface Genre {
+  id: number;
+  name: string;
+  /**
+   * Gerado automaticamente a partir do nome.
+   */
+  slug: string;
+  /**
+   * Breve descrição do gênero musical.
+   */
+  description?: string | null;
+  /**
+   * Discos vinculados a este gênero (somente leitura).
+   */
+  records?: {
+    docs?: (number | Record)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
   };
   updatedAt: string;
   createdAt: string;
@@ -406,11 +374,11 @@ export interface Apparel {
     [k: string]: unknown;
   };
   /**
-   * Em centavos. Ex: 5990 = R$59,90.
+   * Valor em reais. Ex: 59.90
    */
   price: number;
   /**
-   * Deixe vazio se não houver promoção.
+   * Deixe vazio se não houver promoção. Ex: 39.90
    */
   salePrice?: number | null;
   /**
@@ -449,8 +417,17 @@ export interface Apparel {
     altText?: string | null;
     id?: string | null;
   }[];
+  /**
+   * Marcar para destacar este produto na página inicial.
+   */
   featured?: boolean | null;
+  /**
+   * Exibe o selo "RARO" no card do produto.
+   */
   isRare?: boolean | null;
+  /**
+   * Desativado automaticamente quando o estoque total chega a zero.
+   */
   active?: boolean | null;
   /**
    * Usado para cálculo de frete.
@@ -465,36 +442,63 @@ export interface Apparel {
   createdAt: string;
 }
 /**
- * Lista de clientes cadastrados com endereços de entrega.
+ * Organize os produtos em categorias (ex: Rock, Jazz, Merchandise).
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers".
+ * via the `definition` "categories".
  */
-export interface Customer {
+export interface Category {
   id: number;
   name: string;
-  email: string;
-  phone?: string | null;
-  addresses?:
-    | {
-        label?: string | null;
-        street: string;
-        number: string;
-        complement?: string | null;
-        neighborhood: string;
-        city: string;
-        /**
-         * Brazilian UF code (e.g. SP, RJ, MG).
-         */
-        state: string;
-        /**
-         * Brazilian CEP format (e.g. 01310-100).
-         */
-        zipCode: string;
-        isDefault?: boolean | null;
-        id?: string | null;
-      }[]
-    | null;
+  /**
+   * Auto-generated from name. Can be overridden manually.
+   */
+  slug: string;
+  image?: (number | null) | Media;
+  description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Crie os banners do carrossel da home. Existem dois modos:
+ *
+ * ① BANNER DE DESIGN PRÓPRIO — Suba só a imagem (já com o texto desenhado nela). Deixe título e todos os outros campos em branco.
+ *
+ * ② BANNER COM TEXTO — Preencha título, subtítulo e link. A imagem é opcional: sem imagem o banner exibe fundo verde escuro com a logo da Elessar; com imagem ela aparece como fundo.
+ *
+ * Após criar, vá em "Página Inicial" para escolher quais banners aparecem e em que ordem.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "banners".
+ */
+export interface Banner {
+  id: number;
+  /**
+   * DESIGN PRÓPRIO: suba a imagem já com texto e design prontos — deixe todos os campos abaixo em branco.
+   *
+   * BANNER COM TEXTO: use uma foto de fundo. Sem imagem = fundo verde escuro com logo.
+   */
+  image?: (number | null) | Media;
+  /**
+   * Texto principal. Deixe em branco se a imagem já tiver o texto desenhado.
+   */
+  title?: string | null;
+  /**
+   * Texto secundário abaixo do título. Opcional.
+   */
+  subtitle?: string | null;
+  /**
+   * Caminho interno (ex: /catalogo) ou URL externa. Deixe vazio para não exibir botão.
+   */
+  link?: string | null;
+  /**
+   * Ex: "Ver Promoções", "Comprar Agora". Padrão: "Explorar".
+   */
+  linkLabel?: string | null;
+  active?: boolean | null;
+  order?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -579,39 +583,65 @@ export interface Order {
   createdAt: string;
 }
 /**
- * Gerencie os banners e promoções exibidos no site.
+ * Lista de clientes cadastrados com endereços de entrega.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "banners".
+ * via the `definition` "customers".
  */
-export interface Banner {
+export interface Customer {
   id: number;
-  title: string;
-  subtitle?: string | null;
-  image: number | Media;
-  /**
-   * Internal path (e.g. /products/slug) or external URL.
-   */
-  link?: string | null;
-  /**
-   * CTA button text (e.g. "Shop Now").
-   */
-  linkLabel?: string | null;
-  active?: boolean | null;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
-  /**
-   * Optional. Banner will not show before this date.
-   */
-  startsAt?: string | null;
-  /**
-   * Optional. Banner will not show after this date.
-   */
-  endsAt?: string | null;
+  name: string;
+  email: string;
+  phone?: string | null;
+  addresses?:
+    | {
+        label?: string | null;
+        street: string;
+        number: string;
+        complement?: string | null;
+        neighborhood: string;
+        city: string;
+        /**
+         * Brazilian UF code (e.g. SP, RJ, MG).
+         */
+        state: string;
+        /**
+         * Brazilian CEP format (e.g. 01310-100).
+         */
+        zipCode: string;
+        isDefault?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * Usuários com acesso ao painel administrativo.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -638,26 +668,6 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: number | User;
-      } | null)
-    | ({
-        relationTo: 'media';
-        value: number | Media;
-      } | null)
-    | ({
-        relationTo: 'artists';
-        value: number | Artist;
-      } | null)
-    | ({
-        relationTo: 'categories';
-        value: number | Category;
-      } | null)
-    | ({
-        relationTo: 'genres';
-        value: number | Genre;
-      } | null)
-    | ({
         relationTo: 'records';
         value: number | Record;
       } | null)
@@ -666,16 +676,36 @@ export interface PayloadLockedDocument {
         value: number | Apparel;
       } | null)
     | ({
-        relationTo: 'customers';
-        value: number | Customer;
+        relationTo: 'banners';
+        value: number | Banner;
+      } | null)
+    | ({
+        relationTo: 'artists';
+        value: number | Artist;
+      } | null)
+    | ({
+        relationTo: 'genres';
+        value: number | Genre;
+      } | null)
+    | ({
+        relationTo: 'categories';
+        value: number | Category;
+      } | null)
+    | ({
+        relationTo: 'media';
+        value: number | Media;
       } | null)
     | ({
         relationTo: 'orders';
         value: number | Order;
       } | null)
     | ({
-        relationTo: 'banners';
-        value: number | Banner;
+        relationTo: 'customers';
+        value: number | Customer;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -721,84 +751,6 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
- */
-export interface UsersSelect<T extends boolean = true> {
-  updatedAt?: T;
-  createdAt?: T;
-  email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
-    | T
-    | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
-      };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
- */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
-  cloudinaryURL?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "artists_select".
- */
-export interface ArtistsSelect<T extends boolean = true> {
-  name?: T;
-  slug?: T;
-  photo?: T;
-  bio?: T;
-  active?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories_select".
- */
-export interface CategoriesSelect<T extends boolean = true> {
-  name?: T;
-  slug?: T;
-  image?: T;
-  description?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "genres_select".
- */
-export interface GenresSelect<T extends boolean = true> {
-  name?: T;
-  slug?: T;
-  description?: T;
-  records?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "records_select".
  */
 export interface RecordsSelect<T extends boolean = true> {
@@ -834,7 +786,6 @@ export interface RecordsSelect<T extends boolean = true> {
         altText?: T;
         id?: T;
       };
-  featured?: T;
   isRare?: T;
   active?: T;
   weight?: T;
@@ -904,28 +855,77 @@ export interface ApparelSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers_select".
+ * via the `definition` "banners_select".
  */
-export interface CustomersSelect<T extends boolean = true> {
-  name?: T;
-  email?: T;
-  phone?: T;
-  addresses?:
-    | T
-    | {
-        label?: T;
-        street?: T;
-        number?: T;
-        complement?: T;
-        neighborhood?: T;
-        city?: T;
-        state?: T;
-        zipCode?: T;
-        isDefault?: T;
-        id?: T;
-      };
+export interface BannersSelect<T extends boolean = true> {
+  image?: T;
+  title?: T;
+  subtitle?: T;
+  link?: T;
+  linkLabel?: T;
+  active?: T;
+  order?: T;
+  startsAt?: T;
+  endsAt?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "artists_select".
+ */
+export interface ArtistsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  photo?: T;
+  bio?: T;
+  foundedAt?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "genres_select".
+ */
+export interface GenresSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  description?: T;
+  records?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  image?: T;
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  cloudinaryURL?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -972,20 +972,50 @@ export interface OrdersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "banners_select".
+ * via the `definition` "customers_select".
  */
-export interface BannersSelect<T extends boolean = true> {
-  title?: T;
-  subtitle?: T;
-  image?: T;
-  link?: T;
-  linkLabel?: T;
-  active?: T;
-  order?: T;
-  startsAt?: T;
-  endsAt?: T;
+export interface CustomersSelect<T extends boolean = true> {
+  name?: T;
+  email?: T;
+  phone?: T;
+  addresses?:
+    | T
+    | {
+        label?: T;
+        street?: T;
+        number?: T;
+        complement?: T;
+        neighborhood?: T;
+        city?: T;
+        state?: T;
+        zipCode?: T;
+        isDefault?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users_select".
+ */
+export interface UsersSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1026,6 +1056,36 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Tudo que aparece na página inicial da loja. Banners do carrossel e discos em destaque.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "homepage".
+ */
+export interface Homepage {
+  id: number;
+  /**
+   * Selecione os banners que vão aparecer no carrossel da home, na ordem desejada. Para criar um novo banner, acesse a seção "Banners" no menu.
+   */
+  banners?: (number | Banner)[] | null;
+  /**
+   * Escolha até 3 discos para aparecer na seção "Destaques" da home. Arraste para reordenar.
+   */
+  featuredRecords?: (number | Record)[] | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "homepage_select".
+ */
+export interface HomepageSelect<T extends boolean = true> {
+  banners?: T;
+  featuredRecords?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

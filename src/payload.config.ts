@@ -15,6 +15,7 @@ import { Customers } from './collections/Customers'
 import { Orders } from './collections/Orders'
 import { Banners } from './collections/Banners'
 import { Genres } from './collections/Genres'
+import { Homepage } from './globals/Homepage'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -25,8 +26,12 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    meta: {
+      titleSuffix: '— Elessar Records',
+    },
   },
-  collections: [Users, Media, Artists, Categories, Genres, Records, Apparel, Customers, Orders, Banners],
+  collections: [Records, Apparel, Banners, Artists, Genres, Categories, Media, Orders, Customers, Users],
+  globals: [Homepage],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

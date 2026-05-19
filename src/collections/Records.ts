@@ -117,18 +117,18 @@ export const Records: CollectionConfig = {
     // ── Preço ──────────────────────────────────────────────────────────────
     {
       name: 'price',
-      label: 'Preço (centavos)',
+      label: 'Preço (R$)',
       type: 'number',
       required: true,
       min: 0,
-      admin: { description: 'Em centavos. Ex: 4990 = R$49,90.' },
+      admin: { description: 'Valor em reais. Ex: 449.90' },
     },
     {
       name: 'salePrice',
-      label: 'Preço Promocional (centavos)',
+      label: 'Preço Promocional (R$)',
       type: 'number',
       min: 0,
-      admin: { description: 'Deixe vazio se não houver promoção.' },
+      admin: { description: 'Deixe vazio se não houver promoção. Ex: 299.90' },
       validate: ((value: number | null | undefined, { data }: { data: Record<string, unknown> }) => {
         const price = data.price as number | undefined
         if (value != null && price != null && value >= price) {
@@ -278,22 +278,22 @@ export const Records: CollectionConfig = {
 
     // ── Destaques ──────────────────────────────────────────────────────────
     {
-      name: 'featured',
-      label: 'Destaque na Home',
-      type: 'checkbox',
-      defaultValue: false,
-    },
-    {
       name: 'isRare',
       label: 'Item Raro',
       type: 'checkbox',
       defaultValue: false,
+      admin: {
+        description: 'Exibe o selo "RARO" no card do produto.',
+      },
     },
     {
       name: 'active',
       label: 'Ativo (visível na loja)',
       type: 'checkbox',
       defaultValue: true,
+      admin: {
+        description: 'Desmarque para ocultar o produto da loja sem excluir. Desativado automaticamente quando estoque chega a zero.',
+      },
     },
 
     // ── Físico ─────────────────────────────────────────────────────────────

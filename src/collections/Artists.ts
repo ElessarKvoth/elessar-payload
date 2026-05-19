@@ -47,6 +47,15 @@ export const Artists: CollectionConfig = {
       type: 'textarea',
     },
     {
+      name: 'foundedAt',
+      label: 'Data de Formação / Nascimento',
+      type: 'date',
+      admin: {
+        description: 'Data de fundação da banda ou nascimento do artista. Usada para destacar automaticamente o artista mais próximo do aniversário na página de Artistas.',
+        date: { pickerAppearance: 'dayOnly', displayFormat: 'dd/MM/yyyy' },
+      },
+    },
+    {
       name: 'active',
       type: 'checkbox',
       defaultValue: true,
