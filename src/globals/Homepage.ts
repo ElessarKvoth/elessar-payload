@@ -49,8 +49,6 @@ export const Homepage: GlobalConfig = {
       type: 'ui',
       admin: {
         components: {},
-        description:
-          'A seção "Chegou Agora" exibe automaticamente os 10 discos adicionados mais recentemente. Não precisa configurar.',
       },
     },
   ],
