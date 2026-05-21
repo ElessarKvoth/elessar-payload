@@ -75,7 +75,6 @@ export interface Config {
     categories: Category;
     media: Media;
     orders: Order;
-    customers: Customer;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -96,7 +95,6 @@ export interface Config {
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
-    customers: CustomersSelect<false> | CustomersSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -514,7 +512,7 @@ export interface Order {
    * Gerado automaticamente. Formato: ER-<timestamp>.
    */
   orderNumber: string;
-  customer: number | Customer;
+  customer: number | User;
   items: {
     product:
       | {
@@ -583,16 +581,22 @@ export interface Order {
   createdAt: string;
 }
 /**
- * Lista de clientes cadastrados com endereços de entrega.
+ * Administradores e clientes da loja.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers".
+ * via the `definition` "users".
  */
-export interface Customer {
+export interface User {
   id: number;
   name: string;
-  email: string;
   phone?: string | null;
+  /**
+   * Formato: 000.000.000-00. Coletado no checkout para nota fiscal.
+   */
+  cpf?: string | null;
+  birthDate?: string | null;
+  role?: ('admin' | 'client') | null;
+  _verified?: boolean | null;
   addresses?:
     | {
         label?: string | null;
@@ -601,29 +605,51 @@ export interface Customer {
         complement?: string | null;
         neighborhood: string;
         city: string;
-        /**
-         * Brazilian UF code (e.g. SP, RJ, MG).
-         */
-        state: string;
-        /**
-         * Brazilian CEP format (e.g. 01310-100).
-         */
+        state:
+          | 'AC'
+          | 'AL'
+          | 'AP'
+          | 'AM'
+          | 'BA'
+          | 'CE'
+          | 'DF'
+          | 'ES'
+          | 'GO'
+          | 'MA'
+          | 'MT'
+          | 'MS'
+          | 'MG'
+          | 'PA'
+          | 'PB'
+          | 'PR'
+          | 'PE'
+          | 'PI'
+          | 'RJ'
+          | 'RN'
+          | 'RS'
+          | 'RO'
+          | 'RR'
+          | 'SC'
+          | 'SP'
+          | 'SE'
+          | 'TO';
         zipCode: string;
         isDefault?: boolean | null;
         id?: string | null;
       }[]
     | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Usuários com acesso ao painel administrativo.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
+  wishlist?:
+    | (
+        | {
+            relationTo: 'records';
+            value: number | Record;
+          }
+        | {
+            relationTo: 'apparel';
+            value: number | Apparel;
+          }
+      )[]
+    | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -698,10 +724,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'orders';
         value: number | Order;
-      } | null)
-    | ({
-        relationTo: 'customers';
-        value: number | Customer;
       } | null)
     | ({
         relationTo: 'users';
@@ -972,12 +994,15 @@ export interface OrdersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customers_select".
+ * via the `definition` "users_select".
  */
-export interface CustomersSelect<T extends boolean = true> {
+export interface UsersSelect<T extends boolean = true> {
   name?: T;
-  email?: T;
   phone?: T;
+  cpf?: T;
+  birthDate?: T;
+  role?: T;
+  _verified?: T;
   addresses?:
     | T
     | {
@@ -992,14 +1017,7 @@ export interface CustomersSelect<T extends boolean = true> {
         isDefault?: T;
         id?: T;
       };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
- */
-export interface UsersSelect<T extends boolean = true> {
+  wishlist?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;

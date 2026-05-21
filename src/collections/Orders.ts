@@ -1,6 +1,6 @@
 import type { CollectionConfig, CollectionSlug, NumberField } from 'payload'
 
-import { isAdmin } from '../access/isAdmin'
+import { isAdmin, isAdminOrCustomer } from '../access/isAdmin'
 
 // TODO: Integrar gateway de pagamento (Stripe / MercadoPago) — guardar ID externo em paymentId.
 // TODO: Integrar transportadora — usar shippingAddress + peso dos produtos para calcular frete.
@@ -9,7 +9,7 @@ import { isAdmin } from '../access/isAdmin'
 // CollectionSlug casts required until `payload generate:types` is run with all collections registered.
 const RECORDS_SLUG = 'records' as CollectionSlug
 const APPAREL_SLUG = 'apparel' as CollectionSlug
-const CUSTOMERS_SLUG = 'customers' as CollectionSlug
+const USERS_SLUG = 'users' as CollectionSlug
 
 const ORDER_STATUSES = [
   { label: 'Pendente', value: 'pending' },
@@ -66,17 +66,22 @@ export const Orders: CollectionConfig = {
     defaultColumns: ['orderNumber', 'customer', 'total', 'status', 'paymentStatus', 'createdAt'],
   },
   access: {
-    read: isAdmin,
-    create: isAdmin,
+    read: isAdminOrCustomer,
+    create: ({ req: { user } }) => Boolean(user),
     update: isAdmin,
     delete: isAdmin,
   },
   hooks: {
     beforeValidate: [
-      async ({ data, operation }) => {
+      async ({ data, req, operation }) => {
         // Gera número do pedido automaticamente
         if (operation === 'create' && data && !data.orderNumber) {
           data.orderNumber = `ER-${Date.now()}`
+        }
+
+        // Força customer = usuário logado em create (evita impersonação)
+        if (operation === 'create' && req.user && !data?.customer) {
+          if (data) data.customer = req.user.id
         }
 
         // Recalcula subtotal e total no servidor — nunca confia no cliente
@@ -193,7 +198,7 @@ export const Orders: CollectionConfig = {
       name: 'customer',
       label: 'Cliente',
       type: 'relationship',
-      relationTo: CUSTOMERS_SLUG,
+      relationTo: USERS_SLUG,
       required: true,
     },
     {

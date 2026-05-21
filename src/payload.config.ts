@@ -11,7 +11,6 @@ import { Artists } from './collections/Artists'
 import { Categories } from './collections/Categories'
 import { Records } from './collections/Records'
 import { Apparel } from './collections/Apparel'
-import { Customers } from './collections/Customers'
 import { Orders } from './collections/Orders'
 import { Banners } from './collections/Banners'
 import { Genres } from './collections/Genres'
@@ -30,7 +29,7 @@ export default buildConfig({
       titleSuffix: '— Elessar Records',
     },
   },
-  collections: [Records, Apparel, Banners, Artists, Genres, Categories, Media, Orders, Customers, Users],
+  collections: [Records, Apparel, Banners, Artists, Genres, Categories, Media, Orders, Users],
   globals: [Homepage],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
