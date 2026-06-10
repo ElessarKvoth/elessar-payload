@@ -48,12 +48,13 @@ export default buildConfig({
   },
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL,
   cors: [
-    process.env.FRONTEND_URL || 'http://localhost:3001',
+    // FRONTEND_URL accepts comma-separated URLs for multiple environments
+    ...(process.env.FRONTEND_URL ?? '').split(',').map((u) => u.trim()).filter(Boolean),
     'http://localhost:3000',
     'http://localhost:3001',
   ],
   csrf: [
-    process.env.FRONTEND_URL || 'http://localhost:3001',
+    ...(process.env.FRONTEND_URL ?? '').split(',').map((u) => u.trim()).filter(Boolean),
     'http://localhost:3000',
     'http://localhost:3001',
   ],
