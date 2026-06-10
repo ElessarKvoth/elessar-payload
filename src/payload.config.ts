@@ -50,11 +50,13 @@ export default buildConfig({
   cors: [
     // FRONTEND_URL accepts comma-separated URLs for multiple environments
     ...(process.env.FRONTEND_URL ?? '').split(',').map((u) => u.trim()).filter(Boolean),
+    'https://elessar-front.vercel.app',
     'http://localhost:3000',
     'http://localhost:3001',
   ],
   csrf: [
     ...(process.env.FRONTEND_URL ?? '').split(',').map((u) => u.trim()).filter(Boolean),
+    'https://elessar-front.vercel.app',
     'http://localhost:3000',
     'http://localhost:3001',
   ],
