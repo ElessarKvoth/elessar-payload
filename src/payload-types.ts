@@ -107,9 +107,11 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     homepage: Homepage;
+    'configuracoes-de-frete': ConfiguracoesDeFrete;
   };
   globalsSelect: {
     homepage: HomepageSelect<false> | HomepageSelect<true>;
+    'configuracoes-de-frete': ConfiguracoesDeFreteSelect<false> | ConfiguracoesDeFreteSelect<true>;
   };
   locale: null;
   widgets: {
@@ -1095,12 +1097,62 @@ export interface Homepage {
   createdAt?: string | null;
 }
 /**
+ * Parâmetros usados no cálculo do frete (origem, caixa padrão e acréscimo).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "configuracoes-de-frete".
+ */
+export interface ConfiguracoesDeFrete {
+  id: number;
+  /**
+   * CEP de onde os pedidos são enviados.
+   */
+  cepOrigem: string;
+  /**
+   * Valor somado a cada opção de frete, já embutido. Não aparece separado para o cliente.
+   */
+  acrescimoFrete: number;
+  /**
+   * Usada como tamanho mínimo do pacote.
+   */
+  caixaPadrao?: {
+    comprimento?: number | null;
+    largura?: number | null;
+    altura?: number | null;
+  };
+  /**
+   * Usado quando um disco não tem peso cadastrado.
+   */
+  pesoPadraoItem?: number | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "homepage_select".
  */
 export interface HomepageSelect<T extends boolean = true> {
   banners?: T;
   featuredRecords?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "configuracoes-de-frete_select".
+ */
+export interface ConfiguracoesDeFreteSelect<T extends boolean = true> {
+  cepOrigem?: T;
+  acrescimoFrete?: T;
+  caixaPadrao?:
+    | T
+    | {
+        comprimento?: T;
+        largura?: T;
+        altura?: T;
+      };
+  pesoPadraoItem?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

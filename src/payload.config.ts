@@ -15,6 +15,8 @@ import { Orders } from './collections/Orders'
 import { Banners } from './collections/Banners'
 import { Genres } from './collections/Genres'
 import { Homepage } from './globals/Homepage'
+import { ConfiguracoesDeFrete } from './globals/ConfiguracoesDeFrete'
+import { cotarFrete } from './endpoints/cotarFrete'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -30,7 +32,8 @@ export default buildConfig({
     },
   },
   collections: [Records, Apparel, Banners, Artists, Genres, Categories, Media, Orders, Users],
-  globals: [Homepage],
+  globals: [Homepage, ConfiguracoesDeFrete],
+  endpoints: [cotarFrete],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
