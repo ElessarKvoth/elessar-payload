@@ -1,9 +1,10 @@
 import type { CollectionConfig, CollectionSlug, NumberField } from 'payload'
+import { APIError } from 'payload'
 
 import { isAdmin, isAdminOrCustomer } from '../access/isAdmin'
+import { cpfValido } from '../utils/validarCpf'
 
-// TODO: Integrar gateway de pagamento (Stripe / MercadoPago) — guardar ID externo em paymentId.
-// TODO: Integrar transportadora — usar shippingAddress + peso dos produtos para calcular frete.
+// TODO: Integrar gateway de pagamento (Mercado Pago) — guardar ID em idPagamentoMercadoPago.
 // TODO: Implementar sistema de cupons — validar código e aplicar desconto aqui.
 
 // CollectionSlug casts required until `payload generate:types` is run with all collections registered.
@@ -12,14 +13,13 @@ const APPAREL_SLUG = 'apparel' as CollectionSlug
 const USERS_SLUG = 'users' as CollectionSlug
 
 const ORDER_STATUSES = [
-  { label: 'Pendente', value: 'pending' },
-  { label: 'Confirmado', value: 'confirmed' },
-  { label: 'Pago', value: 'paid' },
-  { label: 'Em Preparação', value: 'processing' },
-  { label: 'Enviado', value: 'shipped' },
-  { label: 'Entregue', value: 'delivered' },
-  { label: 'Cancelado', value: 'cancelled' },
-  { label: 'Reembolsado', value: 'refunded' },
+  { label: 'Aguardando pagamento', value: 'aguardando_pagamento' },
+  { label: 'Pago', value: 'pago' },
+  { label: 'Etiqueta criada', value: 'etiqueta_criada' },
+  { label: 'Enviado', value: 'enviado' },
+  { label: 'Entregue', value: 'entregue' },
+  { label: 'Cancelado', value: 'cancelado' },
+  { label: 'Reembolsado', value: 'reembolsado' },
 ]
 
 const PAYMENT_METHODS = [
@@ -63,7 +63,7 @@ export const Orders: CollectionConfig = {
     useAsTitle: 'orderNumber',
     group: 'Vendas',
     description: 'Acompanhe e gerencie todos os pedidos da loja.',
-    defaultColumns: ['orderNumber', 'customer', 'total', 'status', 'paymentStatus', 'createdAt'],
+    defaultColumns: ['orderNumber', 'customer', 'total', 'status', 'statusEtiqueta', 'createdAt'],
   },
   access: {
     read: isAdminOrCustomer,
@@ -74,18 +74,55 @@ export const Orders: CollectionConfig = {
   hooks: {
     beforeValidate: [
       async ({ data, req, operation }) => {
+        if (!data) return data
+
         // Gera número do pedido automaticamente
-        if (operation === 'create' && data && !data.orderNumber) {
+        if (operation === 'create' && !data.orderNumber) {
           data.orderNumber = `ER-${Date.now()}`
         }
 
         // Força customer = usuário logado em create (evita impersonação)
-        if (operation === 'create' && req.user && !data?.customer) {
-          if (data) data.customer = req.user.id
+        if (operation === 'create' && req.user && !data.customer) {
+          data.customer = req.user.id
+        }
+
+        // Valida o destinatário na criação (Correios exigem CPF e endereço na etiqueta)
+        if (operation === 'create') {
+          const dest = (data.destinatario ?? {}) as Record<string, unknown>
+          const obrigatorios: Array<[string, string]> = [
+            ['nome', 'Nome do destinatário'],
+            ['cpf', 'CPF'],
+            ['email', 'E-mail'],
+            ['telefone', 'Telefone'],
+            ['cep', 'CEP'],
+            ['rua', 'Rua'],
+            ['numero', 'Número'],
+            ['bairro', 'Bairro'],
+            ['cidade', 'Cidade'],
+            ['uf', 'UF'],
+          ]
+          for (const [campo, rotulo] of obrigatorios) {
+            const v = dest[campo]
+            if (typeof v !== 'string' || v.trim() === '') {
+              throw new APIError(`${rotulo} é obrigatório.`, 400)
+            }
+          }
+          if (!cpfValido(dest.cpf as string)) {
+            throw new APIError('CPF inválido.', 400)
+          }
+          if ((dest.cep as string).replace(/\D/g, '').length !== 8) {
+            throw new APIError('CEP inválido. Informe 8 dígitos.', 400)
+          }
+        }
+
+        // O frete escolhido define o valor do frete (centavos) usado no total
+        const frete = data.freteEscolhido as { preco?: number } | undefined
+        if (frete && typeof frete.preco === 'number') {
+          data.shipping = frete.preco
         }
 
         // Recalcula subtotal e total no servidor — nunca confia no cliente
-        if (data && Array.isArray(data.items)) {
+        if (Array.isArray(data.items)) {
           const subtotal = (data.items as Array<{ unitPrice?: number; quantity?: number }>).reduce(
             (sum, item) => sum + (item.unitPrice ?? 0) * (item.quantity ?? 0),
             0,
@@ -101,11 +138,11 @@ export const Orders: CollectionConfig = {
       async ({ doc, previousDoc, req, operation, context }) => {
         if (context.skipStockDecrement) return
 
-        const becamePaid =
-          (operation === 'create' && doc.status === 'paid') ||
-          (operation === 'update' && previousDoc?.status !== 'paid' && doc.status === 'paid')
+        const becamePago =
+          (operation === 'create' && doc.status === 'pago') ||
+          (operation === 'update' && previousDoc?.status !== 'pago' && doc.status === 'pago')
 
-        if (!becamePaid) return
+        if (!becamePago) return
 
         for (const item of doc.items as OrderItem[]) {
           const productRef = item.product
@@ -266,11 +303,29 @@ export const Orders: CollectionConfig = {
       admin: { description: 'Calculado automaticamente a partir dos itens.', readOnly: true },
     },
     {
-      // TODO: Substituir por cálculo real de frete quando transportadora for integrada
       name: 'shipping',
       label: 'Frete (centavos)',
       type: 'number',
       defaultValue: 0,
+      admin: { description: 'Definido automaticamente pela opção de frete escolhida.', readOnly: true },
+    },
+    {
+      name: 'freteEscolhido',
+      label: 'Frete Escolhido',
+      type: 'group',
+      admin: { description: 'Opção de frete selecionada pelo cliente no checkout.' },
+      fields: [
+        {
+          name: 'servicoId',
+          label: 'ID do Serviço (SuperFrete)',
+          type: 'number',
+          admin: { description: 'Usado para emitir a etiqueta. Ex: 1=PAC, 2=SEDEX, 17=Mini Envios.' },
+        },
+        { name: 'transportadora', label: 'Transportadora', type: 'text' },
+        { name: 'nome', label: 'Serviço', type: 'text', admin: { description: 'Ex: PAC, SEDEX.' } },
+        { name: 'prazo', label: 'Prazo (dias)', type: 'number' },
+        { name: 'preco', label: 'Preço do Frete (centavos)', type: 'number', admin: { description: 'Já com o acréscimo embutido.' } },
+      ],
     },
     {
       // TODO: Aplicar desconto do sistema de cupons quando implementado
@@ -305,7 +360,7 @@ export const Orders: CollectionConfig = {
       label: 'Status do Pedido',
       type: 'select',
       required: true,
-      defaultValue: 'pending',
+      defaultValue: 'aguardando_pagamento',
       options: ORDER_STATUSES,
     },
     {
@@ -323,17 +378,47 @@ export const Orders: CollectionConfig = {
       options: PAYMENT_STATUSES,
     },
     {
-      // TODO: Guardar o ID retornado pelo Stripe / MercadoPago após confirmação do pagamento
       name: 'paymentId',
       label: 'ID do Pagamento (Gateway)',
       type: 'text',
-      admin: { description: 'ID externo do gateway de pagamento.' },
+      admin: { description: 'ID externo do gateway de pagamento (legado).' },
+    },
+    {
+      name: 'idPagamentoMercadoPago',
+      label: 'ID do Pagamento (Mercado Pago)',
+      type: 'text',
+      admin: {
+        description: 'Preenchido automaticamente quando o pagamento for integrado (fase futura).',
+        readOnly: true,
+      },
+    },
+    {
+      name: 'destinatario',
+      label: 'Destinatário',
+      type: 'group',
+      admin: { description: 'Dados de quem recebe o pedido. Usados na etiqueta dos Correios.' },
+      fields: [
+        { name: 'nome', label: 'Nome', type: 'text' },
+        { name: 'cpf', label: 'CPF', type: 'text', admin: { description: 'Obrigatório para emissão da etiqueta.' } },
+        { name: 'email', label: 'E-mail', type: 'text' },
+        { name: 'telefone', label: 'Telefone', type: 'text' },
+        { name: 'cep', label: 'CEP', type: 'text' },
+        { name: 'rua', label: 'Rua', type: 'text' },
+        { name: 'numero', label: 'Número', type: 'text' },
+        { name: 'complemento', label: 'Complemento', type: 'text' },
+        { name: 'bairro', label: 'Bairro', type: 'text' },
+        { name: 'cidade', label: 'Cidade', type: 'text' },
+        { name: 'uf', label: 'UF', type: 'text' },
+      ],
     },
     {
       name: 'shippingAddress',
-      label: 'Endereço de Entrega',
+      label: 'Endereço de Entrega (legado)',
       type: 'group',
-      admin: { description: 'Snapshot do endereço no momento do pedido.' },
+      admin: {
+        description: 'Snapshot antigo do endereço. Pedidos novos usam o grupo "Destinatário".',
+        hidden: true,
+      },
       fields: [
         { name: 'street', label: 'Rua', type: 'text' },
         { name: 'number', label: 'Número', type: 'text' },
@@ -343,6 +428,39 @@ export const Orders: CollectionConfig = {
         { name: 'state', label: 'Estado', type: 'text' },
         { name: 'zipCode', label: 'CEP', type: 'text' },
       ],
+    },
+    {
+      name: 'idEtiquetaSuperFrete',
+      label: 'ID da Etiqueta (SuperFrete)',
+      type: 'text',
+      admin: { description: 'Preenchido automaticamente quando a etiqueta é criada.', readOnly: true },
+    },
+    {
+      name: 'statusEtiqueta',
+      label: 'Status da Etiqueta',
+      type: 'select',
+      options: [
+        { label: 'A emitir', value: 'a_emitir' },
+        { label: 'Emitida', value: 'emitida' },
+        { label: 'Erro', value: 'erro' },
+      ],
+      admin: { description: 'Acompanhamento da etiqueta na SuperFrete.', readOnly: true },
+    },
+    {
+      name: 'erroEtiqueta',
+      label: 'Erro da Etiqueta',
+      type: 'textarea',
+      admin: {
+        description: 'Mensagem de erro caso a criação da etiqueta falhe.',
+        readOnly: true,
+        condition: (data) => data.statusEtiqueta === 'erro',
+      },
+    },
+    {
+      name: 'codigoRastreio',
+      label: 'Código de Rastreio',
+      type: 'text',
+      admin: { description: 'Preenchido quando disponível.', readOnly: true },
     },
     {
       name: 'notes',

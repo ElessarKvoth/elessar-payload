@@ -546,21 +546,66 @@ export interface Order {
    * Calculado automaticamente a partir dos itens.
    */
   subtotal: number;
+  /**
+   * Definido automaticamente pela opção de frete escolhida.
+   */
   shipping?: number | null;
+  /**
+   * Opção de frete selecionada pelo cliente no checkout.
+   */
+  freteEscolhido?: {
+    /**
+     * Usado para emitir a etiqueta. Ex: 1=PAC, 2=SEDEX, 17=Mini Envios.
+     */
+    servicoId?: number | null;
+    transportadora?: string | null;
+    /**
+     * Ex: PAC, SEDEX.
+     */
+    nome?: string | null;
+    prazo?: number | null;
+    /**
+     * Já com o acréscimo embutido.
+     */
+    preco?: number | null;
+  };
   discount?: number | null;
   /**
    * Calculado: subtotal + frete − desconto.
    */
   total: number;
-  status: 'pending' | 'confirmed' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  status: 'aguardando_pagamento' | 'pago' | 'etiqueta_criada' | 'enviado' | 'entregue' | 'cancelado' | 'reembolsado';
   paymentMethod?: ('pix' | 'credit_card' | 'boleto' | 'other') | null;
   paymentStatus?: ('unpaid' | 'paid' | 'refunded' | 'chargeback') | null;
   /**
-   * ID externo do gateway de pagamento.
+   * ID externo do gateway de pagamento (legado).
    */
   paymentId?: string | null;
   /**
-   * Snapshot do endereço no momento do pedido.
+   * Preenchido automaticamente quando o pagamento for integrado (fase futura).
+   */
+  idPagamentoMercadoPago?: string | null;
+  /**
+   * Dados de quem recebe o pedido. Usados na etiqueta dos Correios.
+   */
+  destinatario?: {
+    nome?: string | null;
+    /**
+     * Obrigatório para emissão da etiqueta.
+     */
+    cpf?: string | null;
+    email?: string | null;
+    telefone?: string | null;
+    cep?: string | null;
+    rua?: string | null;
+    numero?: string | null;
+    complemento?: string | null;
+    bairro?: string | null;
+    cidade?: string | null;
+    uf?: string | null;
+  };
+  /**
+   * Snapshot antigo do endereço. Pedidos novos usam o grupo "Destinatário".
    */
   shippingAddress?: {
     street?: string | null;
@@ -571,6 +616,22 @@ export interface Order {
     state?: string | null;
     zipCode?: string | null;
   };
+  /**
+   * Preenchido automaticamente quando a etiqueta é criada.
+   */
+  idEtiquetaSuperFrete?: string | null;
+  /**
+   * Acompanhamento da etiqueta na SuperFrete.
+   */
+  statusEtiqueta?: ('a_emitir' | 'emitida' | 'erro') | null;
+  /**
+   * Mensagem de erro caso a criação da etiqueta falhe.
+   */
+  erroEtiqueta?: string | null;
+  /**
+   * Preenchido quando disponível.
+   */
+  codigoRastreio?: string | null;
   /**
    * Notas internas do admin. Não visível ao cliente.
    */
@@ -972,12 +1033,37 @@ export interface OrdersSelect<T extends boolean = true> {
       };
   subtotal?: T;
   shipping?: T;
+  freteEscolhido?:
+    | T
+    | {
+        servicoId?: T;
+        transportadora?: T;
+        nome?: T;
+        prazo?: T;
+        preco?: T;
+      };
   discount?: T;
   total?: T;
   status?: T;
   paymentMethod?: T;
   paymentStatus?: T;
   paymentId?: T;
+  idPagamentoMercadoPago?: T;
+  destinatario?:
+    | T
+    | {
+        nome?: T;
+        cpf?: T;
+        email?: T;
+        telefone?: T;
+        cep?: T;
+        rua?: T;
+        numero?: T;
+        complemento?: T;
+        bairro?: T;
+        cidade?: T;
+        uf?: T;
+      };
   shippingAddress?:
     | T
     | {
@@ -989,6 +1075,10 @@ export interface OrdersSelect<T extends boolean = true> {
         state?: T;
         zipCode?: T;
       };
+  idEtiquetaSuperFrete?: T;
+  statusEtiqueta?: T;
+  erroEtiqueta?: T;
+  codigoRastreio?: T;
   notes?: T;
   customerNotes?: T;
   updatedAt?: T;
