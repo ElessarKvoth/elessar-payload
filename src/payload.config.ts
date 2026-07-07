@@ -17,6 +17,7 @@ import { Genres } from './collections/Genres'
 import { Homepage } from './globals/Homepage'
 import { ConfiguracoesDeFrete } from './globals/ConfiguracoesDeFrete'
 import { cotarFrete } from './endpoints/cotarFrete'
+import { simularPagamento } from './endpoints/simularPagamento'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -33,7 +34,7 @@ export default buildConfig({
   },
   collections: [Records, Apparel, Banners, Artists, Genres, Categories, Media, Orders, Users],
   globals: [Homepage, ConfiguracoesDeFrete],
-  endpoints: [cotarFrete],
+  endpoints: [cotarFrete, simularPagamento],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

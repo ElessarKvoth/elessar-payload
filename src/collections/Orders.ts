@@ -3,6 +3,8 @@ import { APIError } from 'payload'
 
 import { isAdmin, isAdminOrCustomer } from '../access/isAdmin'
 import { cpfValido } from '../utils/validarCpf'
+import { criarEtiquetaSuperFrete } from '../utils/criarEtiquetaSuperFrete'
+import type { Order } from '../payload-types'
 
 // TODO: Integrar gateway de pagamento (Mercado Pago) — guardar ID em idPagamentoMercadoPago.
 // TODO: Implementar sistema de cupons — validar código e aplicar desconto aqui.
@@ -217,6 +219,55 @@ export const Orders: CollectionConfig = {
               context: { skipStockDecrement: true },
             })
           }
+        }
+      },
+      // ── Cria a etiqueta na SuperFrete quando o pedido vira "pago" ──────────
+      // O gatilho é a MUDANÇA DE STATUS para "pago" (não o botão de checkout).
+      // Assim, quando o Mercado Pago for integrado, basta marcar como "pago".
+      async ({ doc, previousDoc, req, operation, context }) => {
+        if (context.skipEtiqueta) return
+
+        const order = doc as unknown as Order
+        const previa = previousDoc as unknown as Order | undefined
+
+        const becamePago =
+          (operation === 'create' && order.status === 'pago') ||
+          (operation === 'update' && previa?.status !== 'pago' && order.status === 'pago')
+        if (!becamePago) return
+
+        // Idempotência: se já tem etiqueta, não cria de novo.
+        if (order.idEtiquetaSuperFrete) return
+
+        const config = await req.payload.findGlobal({ slug: 'configuracoes-de-frete', req })
+        const resultado = await criarEtiquetaSuperFrete(req.payload, order, config, req)
+
+        if (resultado.id) {
+          await req.payload.update({
+            collection: 'orders',
+            id: order.id,
+            data: {
+              idEtiquetaSuperFrete: resultado.id,
+              statusEtiqueta: 'a_emitir',
+              status: 'etiqueta_criada',
+            },
+            req,
+            context: { skipEtiqueta: true, skipStockDecrement: true },
+          })
+        } else {
+          // Falha não quebra o fluxo: registra o erro no pedido e loga (sem token).
+          req.payload.logger.error(
+            `[Etiqueta] Falha ao criar etiqueta do pedido ${order.orderNumber}: ${resultado.erro}`,
+          )
+          await req.payload.update({
+            collection: 'orders',
+            id: order.id,
+            data: {
+              statusEtiqueta: 'erro',
+              erroEtiqueta: resultado.erro ?? 'Erro desconhecido ao criar a etiqueta.',
+            },
+            req,
+            context: { skipEtiqueta: true, skipStockDecrement: true },
+          })
         }
       },
     ],

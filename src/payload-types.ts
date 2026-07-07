@@ -1199,6 +1199,21 @@ export interface ConfiguracoesDeFrete {
    */
   cepOrigem: string;
   /**
+   * Dados de quem envia — aparecem na etiqueta dos Correios. Preencha com os dados reais da loja (o CEP é o "CEP de origem" acima).
+   */
+  remetente?: {
+    nome?: string | null;
+    documento?: string | null;
+    telefone?: string | null;
+    email?: string | null;
+    rua?: string | null;
+    numero?: string | null;
+    complemento?: string | null;
+    bairro?: string | null;
+    cidade?: string | null;
+    uf?: string | null;
+  };
+  /**
    * Valor somado a cada opção de frete, já embutido. Não aparece separado para o cliente.
    */
   acrescimoFrete: number;
@@ -1234,6 +1249,20 @@ export interface HomepageSelect<T extends boolean = true> {
  */
 export interface ConfiguracoesDeFreteSelect<T extends boolean = true> {
   cepOrigem?: T;
+  remetente?:
+    | T
+    | {
+        nome?: T;
+        documento?: T;
+        telefone?: T;
+        email?: T;
+        rua?: T;
+        numero?: T;
+        complemento?: T;
+        bairro?: T;
+        cidade?: T;
+        uf?: T;
+      };
   acrescimoFrete?: T;
   caixaPadrao?:
     | T

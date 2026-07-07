@@ -25,6 +25,27 @@ export const ConfiguracoesDeFrete: GlobalConfig = {
       },
     },
     {
+      name: 'remetente',
+      label: 'Remetente (dados da etiqueta)',
+      type: 'group',
+      admin: {
+        description:
+          'Dados de quem envia — aparecem na etiqueta dos Correios. Preencha com os dados reais da loja (o CEP é o "CEP de origem" acima).',
+      },
+      fields: [
+        { name: 'nome', label: 'Nome / Razão social', type: 'text' },
+        { name: 'documento', label: 'CPF ou CNPJ', type: 'text' },
+        { name: 'telefone', label: 'Telefone', type: 'text' },
+        { name: 'email', label: 'E-mail', type: 'text' },
+        { name: 'rua', label: 'Rua', type: 'text' },
+        { name: 'numero', label: 'Número', type: 'text' },
+        { name: 'complemento', label: 'Complemento', type: 'text' },
+        { name: 'bairro', label: 'Bairro', type: 'text' },
+        { name: 'cidade', label: 'Cidade', type: 'text' },
+        { name: 'uf', label: 'UF', type: 'text', maxLength: 2 },
+      ],
+    },
+    {
       name: 'acrescimoFrete',
       label: 'Acréscimo no frete (R$)',
       type: 'number',
