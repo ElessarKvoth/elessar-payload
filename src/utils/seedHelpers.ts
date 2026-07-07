@@ -434,7 +434,7 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
   counts.users = customerIds.length
 
   // 7. Pedidos
-  const STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
+  const STATUSES = ['aguardando_pagamento', 'pago', 'etiqueta_criada', 'enviado', 'entregue', 'cancelado']
   const PAY_METHODS = ['pix', 'credit_card', 'boleto']
   for (let i = 0; i < 15; i++) {
     const cust = CUSTOMERS[i % CUSTOMERS.length]!
@@ -451,9 +451,15 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
       data: {
         orderNumber: `ER-SEED-${String(i + 1).padStart(3, '0')}`,
         customer: customerIds[i % customerIds.length]!,
-        items, shipping: 1500, discount: i % 5 === 0 ? 500 : 0,
+        items, discount: i % 5 === 0 ? 500 : 0,
         status: STATUSES[i % STATUSES.length], paymentMethod: PAY_METHODS[i % PAY_METHODS.length], paymentStatus: 'unpaid',
-        shippingAddress: { street: cust.street, number: cust.number, neighborhood: cust.hood, city: cust.city, state: cust.state, zipCode: cust.zip },
+        // shipping é derivado de freteEscolhido.preco no beforeValidate.
+        freteEscolhido: { servicoId: 1, transportadora: 'Correios', nome: 'PAC', prazo: 5, preco: 1500 },
+        destinatario: {
+          nome: cust.name, cpf: '529.982.247-25', email: cust.email, telefone: cust.phone,
+          cep: cust.zip, rua: cust.street, numero: cust.number, complemento: '',
+          bairro: cust.hood, cidade: cust.city, uf: cust.state,
+        },
         notes: 'Pedido criado via seed.',
       },
       overrideAccess: true,

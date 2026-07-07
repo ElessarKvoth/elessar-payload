@@ -17,7 +17,8 @@
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/seed.ts",
-    "clear": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/seed.ts --clear"
+    "clear": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/seed.ts --clear",
+    "reset:db": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/reset-db.ts"
   },
   "dependencies": {
     "@payloadcms/db-vercel-postgres": "3.84.1",
