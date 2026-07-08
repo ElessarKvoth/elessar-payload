@@ -4,7 +4,24 @@ import { APIError } from 'payload'
 import { isAdmin, isAdminOrCustomer } from '../access/isAdmin'
 import { cpfValido } from '../utils/validarCpf'
 import { criarEtiquetaSuperFrete } from '../utils/criarEtiquetaSuperFrete'
+import { construirPacoteDoPedido } from '../utils/construirPacoteDoPedido'
+import { cotarSuperFrete } from '../utils/cotarSuperFrete'
 import type { Order } from '../payload-types'
+
+// Forma dos itens recebidos no create (antes da validação do Payload).
+type ItemPedidoEntrada = {
+  product?: {
+    relationTo?: 'records' | 'apparel'
+    value?: number | string | { id: number | string }
+  }
+  quantity?: number
+  variantSize?: string | null
+  variantColor?: string | null
+  unitPrice?: number
+}
+
+const idDoValue = (v: number | string | { id: number | string } | undefined): number | string =>
+  typeof v === 'object' && v !== null ? v.id : (v as number | string)
 
 // TODO: Integrar gateway de pagamento (Mercado Pago) — guardar ID em idPagamentoMercadoPago.
 // TODO: Implementar sistema de cupons — validar código e aplicar desconto aqui.
@@ -75,7 +92,7 @@ export const Orders: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [
-      async ({ data, req, operation }) => {
+      async ({ data, req, operation, context }) => {
         if (!data) return data
 
         // Gera número do pedido automaticamente
@@ -117,10 +134,107 @@ export const Orders: CollectionConfig = {
           }
         }
 
+        // ── SEGURANÇA: reprecifica itens no servidor (create) ─────────────────
+        // O cliente envia unitPrice apenas por conveniência; o valor que vale é
+        // SEMPRE o preço atual do banco. Também valida disponibilidade/estoque.
+        if (operation === 'create' && Array.isArray(data.items)) {
+          for (const item of data.items as ItemPedidoEntrada[]) {
+            const relacao = item.product?.relationTo
+            const produtoId = idDoValue(item.product?.value)
+            const qtd = item.quantity ?? 0
+            if (!relacao || produtoId == null || qtd < 1) {
+              throw new APIError('Item do pedido inválido.', 400)
+            }
+
+            if (relacao === 'apparel') {
+              const ap = await req.payload
+                .findByID({ collection: APPAREL_SLUG, id: produtoId, depth: 0, req })
+                .catch(() => null)
+              const apparel = ap as unknown as (ApparelSnapshot & { price: number; salePrice?: number | null; active?: boolean }) | null
+              if (!apparel || apparel.active === false) {
+                throw new APIError('Um dos produtos do pedido não está mais disponível.', 400)
+              }
+              const variant = apparel.variants.find(
+                (v) => v.size === item.variantSize && (!item.variantColor || v.color === item.variantColor),
+              )
+              if (!variant) throw new APIError(`Variante indisponível para "${apparel.title}".`, 400)
+              if (variant.stock < qtd) {
+                throw new APIError(`Estoque insuficiente para "${apparel.title}" (tam. ${item.variantSize}).`, 400)
+              }
+              const precoReais =
+                apparel.salePrice != null && apparel.salePrice < apparel.price ? apparel.salePrice : apparel.price
+              item.unitPrice = Math.round(precoReais * 100)
+            } else {
+              const rec = await req.payload
+                .findByID({ collection: RECORDS_SLUG, id: produtoId, depth: 0, req })
+                .catch(() => null)
+              const record = rec as unknown as (RecordSnapshot & { price: number; salePrice?: number | null; active?: boolean }) | null
+              if (!record || record.active === false) {
+                throw new APIError('Um dos discos do pedido não está mais disponível.', 400)
+              }
+              if (record.stock < qtd) {
+                throw new APIError(`Estoque insuficiente para "${record.title}".`, 400)
+              }
+              const precoReais =
+                record.salePrice != null && record.salePrice < record.price ? record.salePrice : record.price
+              item.unitPrice = Math.round(precoReais * 100)
+            }
+          }
+        }
+
         // O frete escolhido define o valor do frete (centavos) usado no total
-        const frete = data.freteEscolhido as { preco?: number } | undefined
+        const frete = data.freteEscolhido as { preco?: number; servicoId?: number | null } | undefined
         if (frete && typeof frete.preco === 'number') {
           data.shipping = frete.preco
+        }
+
+        // ── SEGURANÇA: revalida o preço do frete na SuperFrete (create) ───────
+        // Recalcula o pacote e cota de novo no servidor; se a cotação responder,
+        // o preço do serviço escolhido SOBRESCREVE o valor enviado pelo cliente.
+        // Se a SuperFrete estiver fora, mantém o valor do cliente (checkout não
+        // trava por indisponibilidade externa) e registra alerta no log.
+        // O seed pula esta etapa via context.skipValidacaoFrete.
+        if (
+          operation === 'create' &&
+          !context?.skipValidacaoFrete &&
+          frete?.servicoId != null &&
+          Array.isArray(data.items) &&
+          process.env.SUPERFRETE_TOKEN
+        ) {
+          const destCep = String((data.destinatario as { cep?: string } | undefined)?.cep ?? '').replace(/\D/g, '')
+          if (destCep.length === 8) {
+            const config = await req.payload.findGlobal({ slug: 'configuracoes-de-frete' })
+            const caixa = {
+              comprimento: config.caixaPadrao?.comprimento ?? 33,
+              largura: config.caixaPadrao?.largura ?? 33,
+              altura: config.caixaPadrao?.altura ?? 3,
+            }
+            const pacote = await construirPacoteDoPedido(
+              req.payload,
+              data.items as Order['items'],
+              caixa,
+              config.pesoPadraoItem ?? 350,
+              req,
+            )
+            const cotacao = await cotarSuperFrete(
+              (config.cepOrigem ?? '').replace(/\D/g, ''),
+              destCep,
+              pacote,
+            )
+            if (cotacao.ok) {
+              const opcao = cotacao.opcoes.find(
+                (o) => o.id === frete.servicoId && o.error == null && Number.isFinite(Number(o.price)),
+              )
+              if (!opcao) {
+                throw new APIError('O frete escolhido não está mais disponível. Recalcule o frete.', 400)
+              }
+              const precoServidor = Math.round((Number(opcao.price) + (config.acrescimoFrete ?? 8)) * 100)
+              ;(data.freteEscolhido as { preco?: number }).preco = precoServidor
+              data.shipping = precoServidor
+            } else {
+              req.payload.logger.warn(`[pedido] Frete não revalidado (${cotacao.erro}); usando valor enviado.`)
+            }
+          }
         }
 
         // Recalcula subtotal e total no servidor — nunca confia no cliente

@@ -463,6 +463,8 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
         notes: 'Pedido criado via seed.',
       },
       overrideAccess: true,
+      // Evita 15 chamadas externas à SuperFrete durante o seed.
+      context: { skipValidacaoFrete: true },
     })
   }
   counts.orders = 15

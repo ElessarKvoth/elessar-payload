@@ -2,6 +2,7 @@ import type { Endpoint, PayloadRequest } from 'payload'
 import { addDataAndFileToRequest, headersWithCors } from 'payload'
 
 import { montarPacote, type ItemPacote } from '../utils/freteCalculo'
+import { cotarSuperFrete } from '../utils/cotarSuperFrete'
 
 // Item enviado pelo cliente no corpo da requisição.
 // `productType` é opcional e assume 'records' (retrocompatível com a Fase 1).
@@ -9,18 +10,6 @@ interface ItemEntrada {
   recordId: string | number
   quantidade: number
   productType: 'records' | 'apparel'
-}
-
-// Uma opção de frete retornada pela SuperFrete. Tipamos só o que usamos; opções
-// indisponíveis vêm com `error` e/ou sem `price` válido.
-interface OpcaoSuperFrete {
-  id?: number
-  name?: string
-  price?: number | string
-  error?: string
-  delivery_time?: number
-  delivery_range?: { min?: number; max?: number }
-  company?: { name?: string }
 }
 
 function respostaJson(req: PayloadRequest, body: unknown, status = 200): Response {
@@ -133,62 +122,20 @@ export const cotarFrete: Endpoint = {
     // ── 4. Monta o pacote consolidado ─────────────────────────────────────
     const pacote = montarPacote(itensPacote, caixa, pesoPadraoItem)
 
-    // ── 5. Chama a calculadora da SuperFrete ──────────────────────────────
-    const token = process.env.SUPERFRETE_TOKEN
-    if (!token) {
+    // ── 5. Chama a calculadora da SuperFrete (util compartilhado) ─────────
+    if (!process.env.SUPERFRETE_TOKEN) {
       req.payload.logger.error('[frete] SUPERFRETE_TOKEN não configurado.')
       return respostaErro(req, 500, 'Serviço de frete indisponível no momento.')
     }
 
-    const base =
-      process.env.SUPERFRETE_ENV === 'production'
-        ? 'https://api.superfrete.com'
-        : 'https://sandbox.superfrete.com'
-
-    let resp: Response
-    try {
-      resp = await fetch(`${base}/api/v0/calculator`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'User-Agent': `Elessar Records (${process.env.SUPERFRETE_USER_AGENT_EMAIL ?? ''})`,
-          accept: 'application/json',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: { postal_code: cepOrigem },
-          to: { postal_code: cepDestino },
-          services: '1,2,17', // PAC, SEDEX e Mini Envios
-          package: {
-            height: pacote.altura,
-            width: pacote.largura,
-            length: pacote.comprimento,
-            weight: pacote.weightKg,
-          },
-        }),
-      })
-    } catch (err) {
-      req.payload.logger.error(
-        `[frete] Falha ao contatar a SuperFrete: ${(err as Error).message}`,
-      )
-      return respostaErro(req, 502, 'Não foi possível calcular o frete agora. Tente novamente.')
-    }
-
-    if (!resp.ok) {
-      // Loga status e corpo (nunca os headers, que carregam o token).
-      const corpo = await resp.text().catch(() => '')
-      req.payload.logger.error(`[frete] SuperFrete retornou ${resp.status}: ${corpo.slice(0, 500)}`)
-      return respostaErro(req, 502, 'Não foi possível calcular o frete agora. Tente novamente.')
-    }
-
-    const dados: unknown = await resp.json().catch(() => null)
-    if (!Array.isArray(dados)) {
-      req.payload.logger.error('[frete] Resposta inesperada da SuperFrete (esperado um array).')
+    const resultado = await cotarSuperFrete(cepOrigem, cepDestino, pacote)
+    if (!resultado.ok) {
+      req.payload.logger.error(`[frete] ${resultado.erro}`)
       return respostaErro(req, 502, 'Não foi possível calcular o frete agora. Tente novamente.')
     }
 
     // ── 6. Filtra e marca o preço (o preço bruto NUNCA sai daqui) ─────────
-    const opcoes = (dados as OpcaoSuperFrete[])
+    const opcoes = resultado.opcoes
       .map((o) => {
         if (!o || o.error != null) return null
         const precoBruto = Number(o.price)

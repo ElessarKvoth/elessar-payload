@@ -37,7 +37,13 @@ export const simularPagamento: Endpoint = {
 
     // Idempotente: só marca como pago se ainda estiver aguardando pagamento.
     if (order.status !== 'aguardando_pagamento') {
-      return resp({ ok: true, status: order.status, statusEtiqueta: order.statusEtiqueta ?? null, jaProcessado: true })
+      return resp({
+        ok: true,
+        status: order.status,
+        statusEtiqueta: order.statusEtiqueta ?? null,
+        erroEtiqueta: order.erroEtiqueta ?? null,
+        jaProcessado: true,
+      })
     }
 
     // Dispara o hook afterChange (baixa de estoque + criação da etiqueta).
@@ -56,6 +62,11 @@ export const simularPagamento: Endpoint = {
       depth: 0,
       req: req as PayloadRequest,
     })
-    return resp({ ok: true, status: atualizado.status, statusEtiqueta: atualizado.statusEtiqueta ?? null })
+    return resp({
+      ok: true,
+      status: atualizado.status,
+      statusEtiqueta: atualizado.statusEtiqueta ?? null,
+      erroEtiqueta: atualizado.erroEtiqueta ?? null,
+    })
   },
 }
