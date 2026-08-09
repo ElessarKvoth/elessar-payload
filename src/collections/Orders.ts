@@ -237,6 +237,16 @@ export const Orders: CollectionConfig = {
           }
         }
 
+        // ── SEGURANÇA: valida faixa do frete quando não foi possível revalidar ──
+        // (servicoId nulo, SUPERFRETE_TOKEN ausente ou cotação fora do ar). Sem
+        // isso, um cliente malicioso poderia mandar `preco` negativo para abater
+        // o total do pedido.
+        if (operation === 'create' && typeof data.shipping === 'number') {
+          if (!Number.isFinite(data.shipping) || data.shipping < 0) {
+            throw new APIError('Valor de frete inválido.', 400)
+          }
+        }
+
         // Recalcula subtotal e total no servidor — nunca confia no cliente
         if (Array.isArray(data.items)) {
           const subtotal = (data.items as Array<{ unitPrice?: number; quantity?: number }>).reduce(

@@ -18,6 +18,8 @@ import { Homepage } from './globals/Homepage'
 import { ConfiguracoesDeFrete } from './globals/ConfiguracoesDeFrete'
 import { cotarFrete } from './endpoints/cotarFrete'
 import { simularPagamento } from './endpoints/simularPagamento'
+import { criarPagamentoMercadoPago } from './endpoints/criarPagamentoMercadoPago'
+import { mercadopagoWebhook } from './endpoints/mercadopagoWebhook'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -34,7 +36,7 @@ export default buildConfig({
   },
   collections: [Records, Apparel, Banners, Artists, Genres, Categories, Media, Orders, Users],
   globals: [Homepage, ConfiguracoesDeFrete],
-  endpoints: [cotarFrete, simularPagamento],
+  endpoints: [cotarFrete, simularPagamento, criarPagamentoMercadoPago, mercadopagoWebhook],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
