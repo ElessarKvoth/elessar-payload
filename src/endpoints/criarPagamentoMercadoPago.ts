@@ -91,9 +91,7 @@ export const criarPagamentoMercadoPago: Endpoint = {
       req.payload.logger.error(
         `[mercadopago] Falha ao criar preferência (status ${e.status ?? '?'}): ${e.message ?? 'erro desconhecido'}${detalhe ? ` — ${detalhe}` : ''}`,
       )
-      // DEBUG TEMPORÁRIO: expõe o motivo real na resposta pra facilitar o teste
-      // inicial. Trocar por mensagem genérica antes de ir pra produção de verdade.
-      return resp({ erro: detalhe || e.message || 'Não foi possível iniciar o pagamento. Tente novamente.' }, 502)
+      return resp({ erro: 'Não foi possível iniciar o pagamento. Tente novamente.' }, 502)
     }
   },
 }

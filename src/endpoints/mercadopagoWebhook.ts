@@ -1,9 +1,8 @@
 import crypto from 'crypto'
 import type { Endpoint, PayloadRequest } from 'payload'
 import { headersWithCors } from 'payload'
-import { Payment } from 'mercadopago'
 
-import { mercadoPagoClient, paymentMethodFromTipo } from '../utils/mercadopago'
+import { confirmarPagamentoMercadoPago } from '../utils/confirmarPagamentoMercadoPago'
 
 // Valida o header `x-signature` enviado pelo Mercado Pago, conforme o algoritmo
 // oficial: HMAC-SHA256 de "id:<data.id>;request-id:<x-request-id>;ts:<ts>;"
@@ -65,59 +64,11 @@ export const mercadopagoWebhook: Endpoint = {
       return resp({ erro: 'Assinatura inválida.' }, 401)
     }
 
-    let payment
-    try {
-      payment = await new Payment(mercadoPagoClient()).get({ id: String(paymentId) })
-    } catch (err) {
-      req.payload.logger.error(`[mercadopago] Falha ao consultar pagamento ${paymentId}: ${(err as Error).message}`)
-      // 200 para o MP não ficar reenviando um pagamento que talvez nem exista mais.
-      return resp({ ok: true })
+    const resultado = await confirmarPagamentoMercadoPago(req.payload, String(paymentId), req as PayloadRequest)
+    if (!resultado.ok) {
+      req.payload.logger.error(`[mercadopago] Webhook: ${resultado.erro}`)
     }
-
-    const orderNumber = payment.external_reference
-    if (!orderNumber) return resp({ ok: true })
-
-    const found = await req.payload.find({
-      collection: 'orders',
-      where: { orderNumber: { equals: orderNumber } },
-      limit: 1,
-      depth: 0,
-      req: req as PayloadRequest,
-    })
-    const order = found.docs[0]
-    if (!order) {
-      req.payload.logger.warn(`[mercadopago] Pedido ${orderNumber} não encontrado para pagamento ${paymentId}.`)
-      return resp({ ok: true })
-    }
-
-    // Idempotente: só age se o pedido ainda estiver aguardando pagamento.
-    if (order.status !== 'aguardando_pagamento') return resp({ ok: true })
-
-    if (payment.status === 'approved') {
-      await req.payload.update({
-        collection: 'orders',
-        id: order.id,
-        data: {
-          status: 'pago',
-          paymentStatus: 'paid',
-          paymentMethod: paymentMethodFromTipo(payment.payment_type_id),
-          idPagamentoMercadoPago: String(payment.id),
-        },
-        overrideAccess: true,
-        req: req as PayloadRequest,
-      })
-    } else if (payment.status === 'rejected' || payment.status === 'cancelled') {
-      // Mantém o pedido em "aguardando_pagamento" para o cliente poder tentar de novo;
-      // só registramos o ID do pagamento rejeitado para rastreio.
-      await req.payload.update({
-        collection: 'orders',
-        id: order.id,
-        data: { idPagamentoMercadoPago: String(payment.id) },
-        overrideAccess: true,
-        req: req as PayloadRequest,
-      })
-    }
-
+    // Sempre 200 pro MP não ficar reenviando (o erro já foi logado).
     return resp({ ok: true })
   },
 }
