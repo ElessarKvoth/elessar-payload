@@ -19,6 +19,19 @@ export type ResultadoCalculadora =
 // Chama a calculadora da SuperFrete (POST /api/v0/calculator).
 // Compartilhado entre o endpoint público /api/frete/cotar e a revalidação
 // server-side do frete na criação de pedidos. Nunca loga/expõe o token.
+// Pedimos TODOS os serviços conhecidos da SuperFrete — isto NÃO é uma seleção,
+// é um "traz tudo". Quem decide o que o cliente vê é o painel da SuperFrete:
+// serviço desativado lá simplesmente não volta na resposta.
+//
+// IDs confirmados via `npm run frete:diag` na conta da loja:
+//   1=PAC  2=SEDEX  3=Jadlog Econômico  17=Mini Envios  31=Loggi
+// Os demais (4,5,32,33) entram por precaução, caso a SuperFrete habilite novas
+// modalidades — se não existirem, são ignorados na resposta.
+//
+// Atenção: omitir este parâmetro NÃO devolve tudo — a API responde apenas com
+// a Loggi. Por isso a lista precisa ser explícita.
+const TODOS_OS_SERVICOS = '1,2,3,4,5,17,31,32,33'
+
 export async function cotarSuperFrete(
   cepOrigem: string,
   cepDestino: string,
@@ -45,7 +58,7 @@ export async function cotarSuperFrete(
       body: JSON.stringify({
         from: { postal_code: cepOrigem },
         to: { postal_code: cepDestino },
-        services: '1,2,17', // PAC, SEDEX e Mini Envios
+        services: TODOS_OS_SERVICOS,
         package: {
           height: pacote.altura,
           width: pacote.largura,

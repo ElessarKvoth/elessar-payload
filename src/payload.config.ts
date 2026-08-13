@@ -1,5 +1,6 @@
 import { vercelPostgresAdapter } from '@payloadcms/db-vercel-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { resendAdapter } from '@payloadcms/email-resend'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
@@ -17,7 +18,6 @@ import { Genres } from './collections/Genres'
 import { Homepage } from './globals/Homepage'
 import { ConfiguracoesDeFrete } from './globals/ConfiguracoesDeFrete'
 import { cotarFrete } from './endpoints/cotarFrete'
-import { simularPagamento } from './endpoints/simularPagamento'
 import { criarPagamentoMercadoPago } from './endpoints/criarPagamentoMercadoPago'
 import { mercadopagoWebhook } from './endpoints/mercadopagoWebhook'
 import { confirmarRetornoMercadoPago } from './endpoints/confirmarRetornoMercadoPago'
@@ -37,8 +37,17 @@ export default buildConfig({
   },
   collections: [Records, Apparel, Banners, Artists, Genres, Categories, Media, Orders, Users],
   globals: [Homepage, ConfiguracoesDeFrete],
-  endpoints: [cotarFrete, simularPagamento, criarPagamentoMercadoPago, mercadopagoWebhook, confirmarRetornoMercadoPago],
+  endpoints: [cotarFrete, criarPagamentoMercadoPago, mercadopagoWebhook, confirmarRetornoMercadoPago],
   editor: lexicalEditor(),
+  // Sem RESEND_API_KEY o Payload cai no transporte padrão (loga no console em vez
+  // de enviar) — o boot não quebra, mas nenhum e-mail sai de verdade.
+  email: process.env.RESEND_API_KEY
+    ? resendAdapter({
+        defaultFromAddress: process.env.EMAIL_FROM || 'nao-responda@elessarrecords.com.br',
+        defaultFromName: 'Elessar Records',
+        apiKey: process.env.RESEND_API_KEY,
+      })
+    : undefined,
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),

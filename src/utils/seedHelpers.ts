@@ -228,45 +228,23 @@ const APPAREL = [
   { title: 'Boné Elessar Records – Rock',              type: 'cap',    condition: 'new', price: 4990,  sku: 'APP-015', cat: 'Merchandise', artist: null,               desc: 'Boné bordado com logo da Elessar Records.',             sizes: ['unico'] },
 ]
 
-const CUSTOMERS = [
-  { name: 'Ana Lima',         email: 'ana.lima@email.com',         phone: '(11) 99999-1001', birthDate: '1992-03-15T00:00:00.000Z', street: 'Rua Augusta',           number: '123',  hood: 'Consolação',       city: 'São Paulo',      state: 'SP', zip: '01305-100' },
-  { name: 'Bruno Ferreira',   email: 'bruno.ferreira@email.com',   phone: '(11) 99999-1002', birthDate: '1988-07-22T00:00:00.000Z', street: 'Av. Paulista',           number: '1000', hood: 'Bela Vista',       city: 'São Paulo',      state: 'SP', zip: '01310-100' },
-  { name: 'Carolina Santos',  email: 'carolina.santos@email.com',  phone: '(21) 99999-1003', birthDate: '1995-11-08T00:00:00.000Z', street: 'Rua do Catete',          number: '45',   hood: 'Catete',           city: 'Rio de Janeiro', state: 'RJ', zip: '22220-010' },
-  { name: 'Diego Oliveira',   email: 'diego.oliveira@email.com',   phone: '(31) 99999-1004', birthDate: '1990-01-30T00:00:00.000Z', street: 'Av. Afonso Pena',        number: '500',  hood: 'Centro',           city: 'Belo Horizonte', state: 'MG', zip: '30130-000' },
-  { name: 'Elisa Rodrigues',  email: 'elisa.rodrigues@email.com',  phone: '(11) 99999-1005', birthDate: '1993-06-19T00:00:00.000Z', street: 'Rua Oscar Freire',       number: '789',  hood: 'Jardins',          city: 'São Paulo',      state: 'SP', zip: '01426-001' },
-  { name: 'Felipe Costa',     email: 'felipe.costa@email.com',     phone: '(41) 99999-1006', birthDate: '1986-09-04T00:00:00.000Z', street: 'Rua XV de Novembro',     number: '200',  hood: 'Centro',           city: 'Curitiba',       state: 'PR', zip: '80020-310' },
-  { name: 'Gabriela Alves',   email: 'gabriela.alves@email.com',   phone: '(51) 99999-1007', birthDate: '1997-02-14T00:00:00.000Z', street: 'Rua dos Andradas',       number: '1080', hood: 'Centro Histórico', city: 'Porto Alegre',   state: 'RS', zip: '90020-010' },
-  { name: 'Henrique Mendes',  email: 'henrique.mendes@email.com',  phone: '(11) 99999-1008', birthDate: '1984-12-01T00:00:00.000Z', street: 'Rua da Consolação',      number: '234',  hood: 'Consolação',       city: 'São Paulo',      state: 'SP', zip: '01301-000' },
-  { name: 'Isabela Pereira',  email: 'isabela.pereira@email.com',  phone: '(21) 99999-1009', birthDate: '1991-04-27T00:00:00.000Z', street: 'Av. Atlântica',          number: '1702', hood: 'Copacabana',       city: 'Rio de Janeiro', state: 'RJ', zip: '22021-001' },
-  { name: 'João Nascimento',  email: 'joao.nascimento@email.com',  phone: '(85) 99999-1010', birthDate: '1989-08-11T00:00:00.000Z', street: 'Rua Senador Pompeu',     number: '300',  hood: 'Centro',           city: 'Fortaleza',      state: 'CE', zip: '60025-080' },
-  { name: 'Karina Barbosa',   email: 'karina.barbosa@email.com',   phone: '(11) 99999-1011', birthDate: '1996-05-03T00:00:00.000Z', street: 'Av. Brasil',             number: '456',  hood: 'Pinheiros',        city: 'São Paulo',      state: 'SP', zip: '05409-000' },
-  { name: 'Lucas Carvalho',   email: 'lucas.carvalho@email.com',   phone: '(71) 99999-1012', birthDate: '1987-10-18T00:00:00.000Z', street: 'Av. Sete de Setembro',   number: '100',  hood: 'Centro',           city: 'Salvador',       state: 'BA', zip: '40060-001' },
-  { name: 'Mariana Gomes',    email: 'mariana.gomes@email.com',    phone: '(11) 99999-1013', birthDate: '1994-07-09T00:00:00.000Z', street: 'Rua Haddock Lobo',       number: '595',  hood: 'Cerqueira César',  city: 'São Paulo',      state: 'SP', zip: '01414-001' },
-  { name: 'Nelson Araújo',    email: 'nelson.araujo@email.com',    phone: '(27) 99999-1014', birthDate: '1983-03-25T00:00:00.000Z', street: 'Av. N. Sra. da Penha',   number: '1600', hood: 'Santa Lúcia',      city: 'Vitória',        state: 'ES', zip: '29045-402' },
-  { name: 'Olivia Martins',   email: 'olivia.martins@email.com',   phone: '(62) 99999-1015', birthDate: '1998-01-20T00:00:00.000Z', street: 'Av. Goiás',              number: '300',  hood: 'Centro',           city: 'Goiânia',        state: 'GO', zip: '74015-015' },
-  { name: 'Pedro Sousa',      email: 'pedro.sousa@email.com',      phone: '(11) 99999-1016', birthDate: '1990-11-12T00:00:00.000Z', street: 'Rua Vergueiro',          number: '1000', hood: 'Vila Mariana',     city: 'São Paulo',      state: 'SP', zip: '04101-000' },
-  { name: 'Renata Vieira',    email: 'renata.vieira@email.com',    phone: '(92) 99999-1017', birthDate: '1985-06-30T00:00:00.000Z', street: 'Av. Eduardo Ribeiro',    number: '520',  hood: 'Centro',           city: 'Manaus',         state: 'AM', zip: '69010-001' },
-  { name: 'Samuel Castro',    email: 'samuel.castro@email.com',    phone: '(11) 99999-1018', birthDate: '1993-09-07T00:00:00.000Z', street: 'Rua Pamplona',           number: '145',  hood: 'Jardim Paulista',  city: 'São Paulo',      state: 'SP', zip: '01405-100' },
-  { name: 'Tatiana Lopes',    email: 'tatiana.lopes@email.com',    phone: '(61) 99999-1019', birthDate: '1991-12-16T00:00:00.000Z', street: 'SHCN 309 Bloco A',       number: '10',   hood: 'Asa Norte',        city: 'Brasília',       state: 'DF', zip: '70745-500' },
-  { name: 'Vinícius Correia', email: 'vinicius.correia@email.com', phone: '(11) 99999-1020', birthDate: '1988-04-05T00:00:00.000Z', street: 'Rua Fradique Coutinho',  number: '780',  hood: 'Vila Madalena',    city: 'São Paulo',      state: 'SP', zip: '05416-011' },
-]
 
 const BANNERS = [
-  { title: 'Novidades em Vinil – Chegadas da Semana',  subtitle: 'Os lançamentos e relanças que chegaram essa semana',   link: '/records',  linkLabel: 'Ver Discos',      order: 1 },
-  { title: 'Raridades em Estoque',                     subtitle: 'Peças únicas para verdadeiros colecionadores',          link: '/records',  linkLabel: 'Ver Raridades',   order: 2 },
-  { title: 'Pink Floyd – Coleção Especial',            subtitle: 'Dark Side, The Wall e muito mais em vinil',             link: '/records',  linkLabel: 'Comprar Agora',   order: 3 },
-  { title: 'Merchandise Oficial',                      subtitle: 'Camisetas, moletons e patches rock e metal',            link: '/apparel',  linkLabel: 'Ver Produtos',    order: 4 },
-  { title: 'Heavy Metal Clássico',                     subtitle: 'Iron Maiden, Black Sabbath, Judas Priest e mais',       link: '/records',  linkLabel: 'Explorar Metal',  order: 5 },
-  { title: 'Frete Grátis Acima de R$200',              subtitle: 'Para todo o Brasil',                                    link: '/records',  linkLabel: 'Aproveitar',      order: 6 },
-  { title: 'Rock Nacional Anos 80',                    subtitle: 'Legião Urbana, Titãs, Sepultura e muito mais',          link: '/records',  linkLabel: 'Ver Acervo',      order: 7 },
-  { title: 'Thrash Metal – Os Quatro Grandes',         subtitle: 'Metallica, Slayer, Megadeth e Anthrax em vinil',        link: '/records',  linkLabel: 'Ver Thrash',      order: 8 },
-  { title: 'Liquidação – Até 30% Off',                 subtitle: 'Aproveite enquanto dura!',                              link: '/records',  linkLabel: 'Ver Promoções',   order: 9 },
-  { title: 'Beatles Collection',                       subtitle: 'Todos os álbuns em vinil disponíveis',                  link: '/records',  linkLabel: 'Ver Beatles',     order: 10 },
-  { title: 'Novos Moletons Chegaram',                  subtitle: 'Conforto e estilo — edições rock e metal',              link: '/apparel',  linkLabel: 'Ver Moletons',    order: 11 },
-  { title: 'Rock Internacional – Décadas de Ouro',     subtitle: 'Anos 60, 70, 80 e 90 em vinil',                         link: '/records',  linkLabel: 'Explorar',        order: 12 },
-  { title: 'Grunge & Alternative',                     subtitle: 'Nirvana, Radiohead, Soundgarden e mais',                link: '/records',  linkLabel: 'Ver Grunge',      order: 13 },
-  { title: 'Box Sets Colecionáveis',                   subtitle: 'Para verdadeiros fãs de rock e metal',                  link: '/records',  linkLabel: 'Ver Box Sets',    order: 14 },
-  { title: 'Punk Rock – A Origem da Revolta',          subtitle: 'The Clash, Sex Pistols, Ramones e mais',                link: '/records',  linkLabel: 'Ver Punk',        order: 15 },
+  { title: 'Novidades em Vinil – Chegadas da Semana',  subtitle: 'Os lançamentos e relanças que chegaram essa semana',   link: '/catalogo',                          linkLabel: 'Ver Discos',      order: 1 },
+  { title: 'Raridades em Estoque',                     subtitle: 'Peças únicas para verdadeiros colecionadores',          link: '/catalogo?isRare=true',              linkLabel: 'Ver Raridades',   order: 2 },
+  { title: 'Pink Floyd – Coleção Especial',            subtitle: 'Dark Side, The Wall e muito mais em vinil',             link: '/catalogo?artista=pink-floyd',       linkLabel: 'Comprar Agora',   order: 3 },
+  { title: 'Merchandise Oficial',                      subtitle: 'Camisetas, moletons e patches rock e metal',            link: '/vestuario',                         linkLabel: 'Ver Produtos',    order: 4 },
+  { title: 'Heavy Metal Clássico',                     subtitle: 'Iron Maiden, Black Sabbath, Judas Priest e mais',       link: '/catalogo?genero=heavy-metal',       linkLabel: 'Explorar Metal',  order: 5 },
+  { title: 'Discos em Destaque',                       subtitle: 'A seleção da casa, escolhida a dedo',                   link: '/catalogo?featured=true',            linkLabel: 'Ver Destaques',   order: 6 },
+  { title: 'Rock Nacional Anos 80',                    subtitle: 'Legião Urbana, Titãs, Sepultura e muito mais',          link: '/catalogo?genero=rock-nacional',     linkLabel: 'Ver Acervo',      order: 7 },
+  { title: 'Thrash Metal – Os Quatro Grandes',         subtitle: 'Metallica, Slayer, Megadeth e Anthrax em vinil',        link: '/catalogo?genero=thrash-metal',      linkLabel: 'Ver Thrash',      order: 8 },
+  { title: 'Liquidação – Até 30% Off',                 subtitle: 'Aproveite enquanto dura!',                              link: '/catalogo?sort=-createdAt',  linkLabel: 'Ver Promoções',   order: 9 },
+  { title: 'Beatles Collection',                       subtitle: 'Todos os álbuns em vinil disponíveis',                  link: '/catalogo?artista=the-beatles',  linkLabel: 'Ver Beatles',     order: 10 },
+  { title: 'Novos Moletons Chegaram',                  subtitle: 'Conforto e estilo — edições rock e metal',              link: '/vestuario?type=hoodie',  linkLabel: 'Ver Moletons',    order: 11 },
+  { title: 'Rock Internacional – Décadas de Ouro',     subtitle: 'Anos 60, 70, 80 e 90 em vinil',                         link: '/catalogo',  linkLabel: 'Explorar',        order: 12 },
+  { title: 'Grunge & Alternative',                     subtitle: 'Nirvana, Radiohead, Soundgarden e mais',                link: '/catalogo?genero=grunge',  linkLabel: 'Ver Grunge',      order: 13 },
+  { title: 'Box Sets Colecionáveis',                   subtitle: 'Para verdadeiros fãs de rock e metal',                  link: '/catalogo?isRare=true',  linkLabel: 'Ver Box Sets',    order: 14 },
+  { title: 'Punk Rock – A Origem da Revolta',          subtitle: 'The Clash, Sex Pistols, Ramones e mais',                link: '/catalogo?genero=punk-rock',         linkLabel: 'Ver Punk',        order: 15 },
 ]
 
 // ─── runSeed ──────────────────────────────────────────────────────────────────
@@ -416,69 +394,68 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
   counts.apparel = apparelDocs.length
 
   // 6. Clientes
-  const customerIds: (string | number)[] = []
-  for (const c of CUSTOMERS) {
-    const doc = await payload.create({
-      collection: 'users',
-      data: {
-        name: c.name, email: c.email, phone: c.phone, birthDate: c.birthDate,
-        role: 'client',
-        password: 'Seed@123456',
-        _verified: true,
-        addresses: [{ label: 'Casa', street: c.street, number: c.number, neighborhood: c.hood, city: c.city, state: c.state, zipCode: c.zip, isDefault: true }],
-      },
-      overrideAccess: true,
-    })
-    customerIds.push(doc.id)
-  }
-  counts.users = customerIds.length
+  // 6. Usuários e Pedidos: NÃO são criados pelo seed.
+  //    - Usuários: a tabela precisa ficar vazia para que o PRIMEIRO usuário criado
+  //      em /admin vire administrador automaticamente (hook em Users.beforeChange).
+  //      Se o seed criasse clientes, esse fluxo não dispararia e ninguém
+  //      conseguiria entrar no painel.
+  //    - Pedidos: o campo `customer` é obrigatório e aponta para users. Sem
+  //      usuários, não há como criar pedidos. Eles nascem de compras reais.
+  counts.users = 0
+  counts.orders = 0
 
-  // 7. Pedidos
-  const STATUSES = ['aguardando_pagamento', 'pago', 'etiqueta_criada', 'enviado', 'entregue', 'cancelado']
-  const PAY_METHODS = ['pix', 'credit_card', 'boleto']
-  for (let i = 0; i < 15; i++) {
-    const cust = CUSTOMERS[i % CUSTOMERS.length]!
-    const rec  = recordDocs[i % recordDocs.length]!
-    const app  = apparelDocs[i % apparelDocs.length]!
-    const items: Record<string, unknown>[] = [
-      { product: { value: rec.id, relationTo: 'records' }, quantity: 1, unitPrice: rec.price, productTitle: rec.title, productSku: rec.sku },
-    ]
-    if (i % 2 === 1) {
-      items.push({ product: { value: app.id, relationTo: 'apparel' }, quantity: 1, variantSize: (app.sizes ?? ['M'])[0] ?? 'M', unitPrice: app.price, productTitle: app.title, productSku: app.sku })
-    }
-    await payload.create({
-      collection: 'orders',
-      data: {
-        orderNumber: `ER-SEED-${String(i + 1).padStart(3, '0')}`,
-        customer: customerIds[i % customerIds.length]!,
-        items, discount: i % 5 === 0 ? 500 : 0,
-        status: STATUSES[i % STATUSES.length], paymentMethod: PAY_METHODS[i % PAY_METHODS.length], paymentStatus: 'unpaid',
-        // shipping é derivado de freteEscolhido.preco no beforeValidate.
-        freteEscolhido: { servicoId: 1, transportadora: 'Correios', nome: 'PAC', prazo: 5, preco: 1500 },
-        destinatario: {
-          nome: cust.name, cpf: '529.982.247-25', email: cust.email, telefone: cust.phone,
-          cep: cust.zip, rua: cust.street, numero: cust.number, complemento: '',
-          bairro: cust.hood, cidade: cust.city, uf: cust.state,
-        },
-        notes: 'Pedido criado via seed.',
-      },
-      overrideAccess: true,
-      // Evita 15 chamadas externas à SuperFrete durante o seed.
-      context: { skipValidacaoFrete: true },
-    })
-  }
-  counts.orders = 15
-
-  // 8. Banners — imagem individual por banner
+  // 7. Banners — imagem individual por banner
+  const bannerIds: (string | number)[] = []
   for (const b of BANNERS) {
     const imgId = await createMedia(payload, b.title, colorIdx++)
-    await payload.create({
+    const doc = await payload.create({
       collection: 'banners',
       data: { title: b.title, subtitle: b.subtitle, image: imgId, link: b.link, linkLabel: b.linkLabel, active: true, order: b.order },
       overrideAccess: true,
     })
+    bannerIds.push(doc.id)
   }
   counts.banners = BANNERS.length
+
+  // 8. Página Inicial — monta a home completa a partir do que acabou de ser criado.
+  const destaques = RECORDS.filter((r) => r.featured)
+    .map((r) => recordDocs.find((d) => d.sku === r.sku)?.id)
+    .filter((id): id is string | number => id != null)
+    .slice(0, 3)
+
+  // Lançamentos exclusivos: os discos marcados como raros, que não estão em destaque.
+  const lancamentos = RECORDS.filter((r) => r.isRare && !r.featured)
+    .map((r) => recordDocs.find((d) => d.sku === r.sku)?.id)
+    .filter((id): id is string | number => id != null)
+    .slice(0, 4)
+
+  // Ícones de bandas: reaproveita a foto já cadastrada de 4 artistas.
+  const bandasDestaque = ['Iron Maiden', 'Metallica', 'Black Sabbath', 'Sepultura']
+  const bandIcons: Array<{ image: string | number; artist: string | number }> = []
+  for (const nome of bandasDestaque) {
+    const artistId = artistIds[nome]
+    if (!artistId) continue
+    const artista = await payload.findByID({
+      collection: 'artists',
+      id: artistId,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const fotoId = artista?.photo
+    if (fotoId) bandIcons.push({ image: fotoId, artist: artistId })
+  }
+
+  await payload.updateGlobal({
+    slug: 'homepage',
+    data: {
+      banners: bannerIds,
+      featuredRecords: destaques,
+      exclusiveReleases: lancamentos,
+      bandIcons,
+    },
+    overrideAccess: true,
+  })
+  counts.homepage = 1
 
   counts.media = colorIdx
   return counts
@@ -488,6 +465,16 @@ export async function runSeed(payload: Payload): Promise<Record<string, number>>
 
 export async function runClear(payload: Payload): Promise<Record<string, number>> {
   const counts: Record<string, number> = {}
+
+  // Zera a home ANTES de apagar as collections: ela referencia banners, discos,
+  // mídias e artistas — se ficasse apontando para registros deletados, a página
+  // inicial quebraria.
+  await payload.updateGlobal({
+    slug: 'homepage',
+    data: { banners: [], featuredRecords: [], exclusiveReleases: [], bandIcons: [] },
+    overrideAccess: true,
+  })
+  counts.homepage = 1
 
   // Ordem importa: deletar dependentes antes dos referenciados (FK constraints)
   const slugs: CollectionSlug[] = [

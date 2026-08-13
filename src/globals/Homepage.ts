@@ -42,6 +42,50 @@ export const Homepage: GlobalConfig = {
       },
     },
 
+    // ── Lançamentos Exclusivos ─────────────────────────────────────────────
+    {
+      name: 'exclusiveReleases',
+      label: '💿 Lançamentos Exclusivos',
+      type: 'relationship',
+      relationTo: 'records' as CollectionSlug,
+      hasMany: true,
+      maxRows: 4,
+      admin: {
+        description:
+          'Escolha até 4 discos para a seção "Lançamentos Exclusivos" da home. Arraste para reordenar. Se ficar vazio, a seção não aparece.',
+        allowCreate: false,
+      },
+    },
+
+    // ── Bandas em destaque (ícones) ────────────────────────────────────────
+    {
+      name: 'bandIcons',
+      label: '🤘 Bandas em Destaque (ícones)',
+      type: 'array',
+      maxRows: 4,
+      admin: {
+        description:
+          'Até 4 logos de bandas na home. Cada ícone leva ao catálogo filtrado por aquele artista. Use PNG com fundo transparente para o melhor resultado.',
+      },
+      fields: [
+        {
+          name: 'image',
+          label: 'Logo / Ícone (PNG)',
+          type: 'upload',
+          relationTo: 'media' as CollectionSlug,
+          required: true,
+        },
+        {
+          name: 'artist',
+          label: 'Artista / Banda',
+          type: 'relationship',
+          relationTo: 'artists' as CollectionSlug,
+          required: true,
+          admin: { description: 'Para onde o clique leva (catálogo filtrado por este artista).' },
+        },
+      ],
+    },
+
     // ── Chegou Agora ───────────────────────────────────────────────────────
     {
       name: 'newArrivalsNote',

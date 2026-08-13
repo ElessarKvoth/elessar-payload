@@ -6,8 +6,8 @@ import { generateSlug } from '../utils/generateSlug'
 export const Artists: CollectionConfig = {
   slug: 'artists',
   labels: {
-    singular: 'Artista',
-    plural: 'Artistas',
+    singular: 'Artista ou Banda',
+    plural: 'Artistas e Bandas',
   },
   admin: {
     useAsTitle: 'name',

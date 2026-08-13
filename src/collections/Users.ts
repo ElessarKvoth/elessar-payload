@@ -1,6 +1,8 @@
 import type { CollectionConfig, TextField } from 'payload'
 
 import { isAdmin, isAdminOrSelf } from '../access/isAdmin'
+import { cpfValido } from '../utils/validarCpf'
+import { emailBase, storefrontUrl } from '../utils/emailTemplate'
 
 type WithRole = { role?: 'admin' | 'client' }
 
@@ -47,8 +49,34 @@ export const Users: CollectionConfig = {
     defaultColumns: ['name', 'email', 'role', 'createdAt'],
   },
   auth: {
-    verify: false,
     tokenExpiration: 7200,
+    verify: {
+      generateEmailSubject: () => 'Confirme sua conta — Elessar Records',
+      generateEmailHTML: ({ token, user }) =>
+        emailBase({
+          titulo: 'Bem-vindo à Elessar Records',
+          saudacao: `Olá, ${(user as { name?: string }).name ?? ''}`.trim(),
+          corpo:
+            'Sua conta foi criada. Para começar a comprar, confirme seu e-mail clicando no botão abaixo.',
+          botaoTexto: 'Confirmar minha conta',
+          botaoUrl: `${storefrontUrl()}/verificar-email?token=${token}`,
+          rodape: 'Se você não criou esta conta, pode ignorar este e-mail.',
+        }),
+    },
+    forgotPassword: {
+      generateEmailSubject: () => 'Redefinir sua senha — Elessar Records',
+      generateEmailHTML: (args) =>
+        emailBase({
+          titulo: 'Redefinir senha',
+          saudacao: `Olá, ${(args?.user as { name?: string } | undefined)?.name ?? ''}`.trim(),
+          corpo:
+            'Recebemos um pedido para redefinir a senha da sua conta. O link abaixo é válido por tempo limitado.',
+          botaoTexto: 'Criar nova senha',
+          botaoUrl: `${storefrontUrl()}/redefinir-senha?token=${args?.token ?? ''}`,
+          rodape:
+            'Se você não pediu para redefinir a senha, ignore este e-mail — sua senha atual continua valendo.',
+        }),
+    },
   },
   access: {
     // Gates access to the entire admin panel (since Users is the auth collection)
@@ -96,14 +124,20 @@ export const Users: CollectionConfig = {
       name: 'cpf',
       label: 'CPF',
       type: 'text',
+      required: true,
+      unique: true,
+      index: true,
       admin: {
-        description: 'Formato: 000.000.000-00. Coletado no checkout para nota fiscal.',
-        condition: (data) => Boolean(data.id),
+        description: 'Formato: 000.000.000-00. Uma conta por CPF.',
+      },
+      // Normaliza para só dígitos antes de salvar — garante que o índice único
+      // funcione mesmo se um cadastro vier com máscara e outro sem.
+      hooks: {
+        beforeValidate: [({ value }) => (typeof value === 'string' ? value.replace(/\D/g, '') : value)],
       },
       validate: ((value: string | null | undefined) => {
-        if (!value) return true
-        const digits = value.replace(/\D/g, '')
-        if (digits.length !== 11) return 'CPF inválido. Informe os 11 dígitos.'
+        if (!value) return 'CPF é obrigatório.'
+        if (!cpfValido(value)) return 'CPF inválido. Confira os números digitados.'
         return true
       }) satisfies NonNullable<TextField['validate']>,
     },

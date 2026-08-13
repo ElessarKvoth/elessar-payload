@@ -6,6 +6,8 @@ export const testUser = {
   password: 'test',
   name: 'Dev Admin',
   phone: '(11) 99999-0000',
+  // CPF válido (dígitos verificadores conferem) — obrigatório e único na collection.
+  cpf: '52998224725',
   birthDate: '1990-01-01T00:00:00.000Z',
   role: 'admin' as const,
 }

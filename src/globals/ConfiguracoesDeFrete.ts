@@ -6,7 +6,8 @@ export const ConfiguracoesDeFrete: GlobalConfig = {
   label: 'Configurações de Frete',
   admin: {
     group: 'Configurações',
-    description: 'Parâmetros usados no cálculo do frete (origem, caixa padrão e acréscimo).',
+    description:
+      'Parâmetros do cálculo de frete (origem, caixa padrão e acréscimo). As transportadoras exibidas ao cliente — PAC, SEDEX, Jadlog, Loggi — são as que estiverem ATIVAS no painel da SuperFrete (Integrações → Configurações da integração). Ligue ou desligue por lá; aqui não há nada a configurar sobre isso.',
     hideAPIURL: true,
   },
   access: {
@@ -30,19 +31,25 @@ export const ConfiguracoesDeFrete: GlobalConfig = {
       type: 'group',
       admin: {
         description:
-          'Dados de quem envia — aparecem na etiqueta dos Correios. Preencha com os dados reais da loja (o CEP é o "CEP de origem" acima).',
+          'Dados de quem envia — aparecem na etiqueta dos Correios. TODOS são obrigatórios: sem eles a etiqueta não é gerada automaticamente quando um pedido é pago. (O CEP é o "CEP de origem" acima.)',
       },
       fields: [
-        { name: 'nome', label: 'Nome / Razão social', type: 'text' },
-        { name: 'documento', label: 'CPF ou CNPJ', type: 'text' },
-        { name: 'telefone', label: 'Telefone', type: 'text' },
-        { name: 'email', label: 'E-mail', type: 'text' },
-        { name: 'rua', label: 'Rua', type: 'text' },
-        { name: 'numero', label: 'Número', type: 'text' },
+        { name: 'nome', label: 'Nome / Razão social', type: 'text', required: true },
+        {
+          name: 'documento',
+          label: 'CPF ou CNPJ',
+          type: 'text',
+          required: true,
+          admin: { description: 'Somente números, 11 (CPF) ou 14 (CNPJ) dígitos.' },
+        },
+        { name: 'telefone', label: 'Telefone', type: 'text', required: true },
+        { name: 'email', label: 'E-mail', type: 'text', required: true },
+        { name: 'rua', label: 'Rua', type: 'text', required: true },
+        { name: 'numero', label: 'Número', type: 'text', required: true },
         { name: 'complemento', label: 'Complemento', type: 'text' },
-        { name: 'bairro', label: 'Bairro', type: 'text' },
-        { name: 'cidade', label: 'Cidade', type: 'text' },
-        { name: 'uf', label: 'UF', type: 'text', maxLength: 2 },
+        { name: 'bairro', label: 'Bairro', type: 'text', required: true },
+        { name: 'cidade', label: 'Cidade', type: 'text', required: true },
+        { name: 'uf', label: 'UF', type: 'text', required: true, maxLength: 2 },
       ],
     },
     {

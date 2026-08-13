@@ -654,12 +654,11 @@ export interface User {
   name: string;
   phone?: string | null;
   /**
-   * Formato: 000.000.000-00. Coletado no checkout para nota fiscal.
+   * Formato: 000.000.000-00. Uma conta por CPF.
    */
-  cpf?: string | null;
+  cpf: string;
   birthDate?: string | null;
   role?: ('admin' | 'client') | null;
-  _verified?: boolean | null;
   addresses?:
     | {
         label?: string | null;
@@ -720,6 +719,8 @@ export interface User {
   resetPasswordExpiration?: string | null;
   salt?: string | null;
   hash?: string | null;
+  _verified?: boolean | null;
+  _verificationToken?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
   sessions?:
@@ -1094,7 +1095,6 @@ export interface UsersSelect<T extends boolean = true> {
   cpf?: T;
   birthDate?: T;
   role?: T;
-  _verified?: T;
   addresses?:
     | T
     | {
@@ -1117,6 +1117,8 @@ export interface UsersSelect<T extends boolean = true> {
   resetPasswordExpiration?: T;
   salt?: T;
   hash?: T;
+  _verified?: T;
+  _verificationToken?: T;
   loginAttempts?: T;
   lockUntil?: T;
   sessions?:
@@ -1183,11 +1185,28 @@ export interface Homepage {
    * Escolha até 3 discos para aparecer na seção "Destaques" da home. Arraste para reordenar.
    */
   featuredRecords?: (number | Record)[] | null;
+  /**
+   * Escolha até 4 discos para a seção "Lançamentos Exclusivos" da home. Arraste para reordenar. Se ficar vazio, a seção não aparece.
+   */
+  exclusiveReleases?: (number | Record)[] | null;
+  /**
+   * Até 4 logos de bandas na home. Cada ícone leva ao catálogo filtrado por aquele artista. Use PNG com fundo transparente para o melhor resultado.
+   */
+  bandIcons?:
+    | {
+        image: number | Media;
+        /**
+         * Para onde o clique leva (catálogo filtrado por este artista).
+         */
+        artist: number | Artist;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
 /**
- * Parâmetros usados no cálculo do frete (origem, caixa padrão e acréscimo).
+ * Parâmetros do cálculo de frete (origem, caixa padrão e acréscimo). As transportadoras exibidas ao cliente — PAC, SEDEX, Jadlog, Loggi — são as que estiverem ATIVAS no painel da SuperFrete (Integrações → Configurações da integração). Ligue ou desligue por lá; aqui não há nada a configurar sobre isso.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "configuracoes-de-frete".
@@ -1199,19 +1218,22 @@ export interface ConfiguracoesDeFrete {
    */
   cepOrigem: string;
   /**
-   * Dados de quem envia — aparecem na etiqueta dos Correios. Preencha com os dados reais da loja (o CEP é o "CEP de origem" acima).
+   * Dados de quem envia — aparecem na etiqueta dos Correios. TODOS são obrigatórios: sem eles a etiqueta não é gerada automaticamente quando um pedido é pago. (O CEP é o "CEP de origem" acima.)
    */
-  remetente?: {
-    nome?: string | null;
-    documento?: string | null;
-    telefone?: string | null;
-    email?: string | null;
-    rua?: string | null;
-    numero?: string | null;
+  remetente: {
+    nome: string;
+    /**
+     * Somente números, 11 (CPF) ou 14 (CNPJ) dígitos.
+     */
+    documento: string;
+    telefone: string;
+    email: string;
+    rua: string;
+    numero: string;
     complemento?: string | null;
-    bairro?: string | null;
-    cidade?: string | null;
-    uf?: string | null;
+    bairro: string;
+    cidade: string;
+    uf: string;
   };
   /**
    * Valor somado a cada opção de frete, já embutido. Não aparece separado para o cliente.
@@ -1239,6 +1261,14 @@ export interface ConfiguracoesDeFrete {
 export interface HomepageSelect<T extends boolean = true> {
   banners?: T;
   featuredRecords?: T;
+  exclusiveReleases?: T;
+  bandIcons?:
+    | T
+    | {
+        image?: T;
+        artist?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

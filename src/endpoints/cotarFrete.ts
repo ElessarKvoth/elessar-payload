@@ -151,6 +151,8 @@ export const cotarFrete: Endpoint = {
         }
       })
       .filter((o): o is NonNullable<typeof o> => o !== null)
+      // Mais barato primeiro; empate desempata pelo prazo mais curto.
+      .sort((a, b) => a.preco - b.preco || (a.prazoDias ?? 99) - (b.prazoDias ?? 99))
 
     return respostaJson(req, { opcoes })
   },
