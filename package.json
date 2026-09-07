@@ -20,6 +20,7 @@
     "clear": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/seed.ts --clear",
     "db:fresh": "npm run reset:db && cross-env NODE_OPTIONS=--no-deprecation tsx scripts/seed.ts --schema-only",
     "db:baseline": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/baseline-migrations.ts",
+    "db:zerar": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/zerar-banco.ts",
     "db:diag": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/diagnostico-banco.ts",
     "frete:diag": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/diagnostico-frete.ts",
     "email:diag": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/diagnostico-email.ts",

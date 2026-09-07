@@ -20,6 +20,9 @@ import { ConfiguracoesDeFrete } from './globals/ConfiguracoesDeFrete'
 import { PaginaSobreNos } from './globals/PaginaSobreNos'
 import { PaginasLegais } from './globals/PaginasLegais'
 import { PerguntasFrequentes } from './globals/PerguntasFrequentes'
+import { ConfiguracoesGerais } from './globals/ConfiguracoesGerais'
+import { Rodape } from './globals/Rodape'
+import { WhatsApp } from './globals/WhatsApp'
 import { cotarFrete } from './endpoints/cotarFrete'
 import { criarPagamentoMercadoPago } from './endpoints/criarPagamentoMercadoPago'
 import { mercadopagoWebhook } from './endpoints/mercadopagoWebhook'
@@ -93,7 +96,16 @@ export default buildConfig({
   collections: [Records, Apparel, Banners, Artists, Genres, Categories, Media, Orders, Users],
   // A ordem aqui é a ordem do menu lateral: o Payload não ordena nada sozinho,
   // e os globals sempre aparecem depois de todas as collections.
-  globals: [Homepage, PaginaSobreNos, PaginasLegais, PerguntasFrequentes, ConfiguracoesDeFrete],
+  globals: [
+    Homepage,
+    ConfiguracoesGerais,
+    WhatsApp,
+    Rodape,
+    PaginaSobreNos,
+    PaginasLegais,
+    PerguntasFrequentes,
+    ConfiguracoesDeFrete,
+  ],
   endpoints: [cotarFrete, criarPagamentoMercadoPago, mercadopagoWebhook, confirmarRetornoMercadoPago],
   editor: lexicalEditor(),
   // Sem RESEND_API_KEY o Payload cai no transporte padrão (loga no console em vez

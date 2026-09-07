@@ -107,6 +107,9 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     homepage: Homepage;
+    'configuracoes-gerais': ConfiguracoesGerai;
+    whatsapp: Whatsapp;
+    rodape: Rodape;
     'pagina-sobre-nos': PaginaSobreNo;
     'paginas-legais': PaginasLegai;
     'perguntas-frequentes': PerguntasFrequente;
@@ -114,6 +117,9 @@ export interface Config {
   };
   globalsSelect: {
     homepage: HomepageSelect<false> | HomepageSelect<true>;
+    'configuracoes-gerais': ConfiguracoesGeraisSelect<false> | ConfiguracoesGeraisSelect<true>;
+    whatsapp: WhatsappSelect<false> | WhatsappSelect<true>;
+    rodape: RodapeSelect<false> | RodapeSelect<true>;
     'pagina-sobre-nos': PaginaSobreNosSelect<false> | PaginaSobreNosSelect<true>;
     'paginas-legais': PaginasLegaisSelect<false> | PaginasLegaisSelect<true>;
     'perguntas-frequentes': PerguntasFrequentesSelect<false> | PerguntasFrequentesSelect<true>;
@@ -1259,6 +1265,157 @@ export interface Homepage {
   createdAt?: string | null;
 }
 /**
+ * Os dados da Elessar que aparecem espalhados pelo site inteiro: nome, contato, redes sociais e CNPJ. São preenchidos uma vez e mudam raramente. Como tudo vem daqui, corrigir o telefone neste lugar corrige em todas as páginas de uma vez.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "configuracoes-gerais".
+ */
+export interface ConfiguracoesGerai {
+  id: number;
+  /**
+   * Usado no topo do site, na aba do navegador e quando alguém compartilha um link da loja.
+   */
+  nomeDaLoja: string;
+  /**
+   * Uma ou duas linhas que resumem a Elessar. Aparece no rodapé e é o texto que o Google mostra embaixo do nome do site nos resultados de busca. Exemplo: "Discos selecionados a mão. Metal pesado, rock, underground e cultura alternativa."
+   */
+  tagline?: string | null;
+  /**
+   * O endereço que o cliente usa para falar com a loja. Aparece no rodapé e nas páginas de trocas e entrega. Use um e-mail que você realmente acompanhe.
+   */
+  emailContato?: string | null;
+  /**
+   * Escreva do jeito que se lê: (19) 99123-4567. Este campo é só para mostrar na tela — o número que o botão de WhatsApp usa fica na tela "Botão de WhatsApp" e tem outro formato.
+   */
+  telefone?: string | null;
+  /**
+   * O endereço físico da loja, se tiver atendimento presencial. Aparece no rodapé. Deixe vazio se a loja for só online.
+   */
+  endereco?: string | null;
+  /**
+   * Exemplo: "Segunda a sexta, das 9h às 18h". Aparece no rodapé.
+   */
+  horarioAtendimento?: string | null;
+  /**
+   * O nome de usuário com @ ou o endereço completo do perfil. Os dois funcionam.
+   */
+  instagram?: string | null;
+  /**
+   * Endereço completo do canal. Opcional.
+   */
+  youtube?: string | null;
+  /**
+   * Endereço completo da página. Opcional.
+   */
+  facebook?: string | null;
+  /**
+   * O nome registrado da empresa, que costuma ser diferente do nome da loja. Opcional.
+   */
+  razaoSocial?: string | null;
+  /**
+   * Aparece no rodapé de todas as páginas. Mostrar o CNPJ passa confiança para quem está comprando pela primeira vez e é exigido na venda online.
+   */
+  cnpj?: string | null;
+  /**
+   * Desmarcado, nada aparece. Marque só enquanto o recado valer — tarja que fica meses no ar todo mundo aprende a ignorar.
+   */
+  avisoAtivo?: boolean | null;
+  /**
+   * Uma frase só, curta. Exemplo: "Pedidos feitos a partir de 20/12 serão postados em janeiro."
+   */
+  avisoTexto?: string | null;
+  /**
+   * Para onde o cliente vai se clicar na tarja. Opcional — sem link, a tarja é só um recado.
+   */
+  avisoLink?: string | null;
+  /**
+   * A partir desta data a tarja some sozinha, sem você precisar lembrar de voltar aqui. Deixe vazio para o aviso ficar até você desmarcar na mão.
+   */
+  avisoValidoAte?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * O botão verde de WhatsApp que fica flutuando no canto da tela, em todas as páginas da loja. Aqui você define para qual telefone ele leva e o que já vem escrito na conversa quando o cliente clica.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "whatsapp".
+ */
+export interface Whatsapp {
+  id: number;
+  /**
+   * Desmarque para esconder o botão temporariamente — em férias, por exemplo, ou quando não houver ninguém para responder. Melhor esconder que deixar o cliente falando sozinho.
+   */
+  ativo?: boolean | null;
+  /**
+   * Escreva o número completo, só com dígitos, começando pelo 55 do Brasil: 55, DDD, telefone. Para (19) 99123-4567 escreva 5519991234567. Sem espaço, sem parênteses, sem traço.
+   */
+  numero: string;
+  /**
+   * Quando o cliente clica no botão, o WhatsApp abre com esta frase já digitada — ele só aperta enviar. Serve para você saber de onde a pessoa veio. Vale a pena ser específico: "Olá! Vim pelo site da Elessar Records." é melhor que "Oi".
+   */
+  mensagemPadrao: string;
+  /**
+   * Usada no lugar da mensagem acima quando a pessoa clica estando na página de um produto. Escreva {{produto}} onde quiser que o site encaixe o nome do disco ou da peça — ele troca sozinho. Assim você já abre a conversa sabendo do que se trata, em vez de perguntar "qual produto?". Se deixar vazio, vale a mensagem padrão em todo lugar.
+   */
+  mensagemNoProduto?: string | null;
+  /**
+   * Uma frase curta que aparece ao lado do botão quando o cliente passa o mouse por cima. Exemplo: "Fale conosco" ou "Tire sua dúvida".
+   */
+  textoDoBotao?: string | null;
+  /**
+   * Aparece junto do botão para o cliente saber quando esperar resposta. Exemplo: "Segunda a sexta, das 9h às 18h". Deixar isso claro evita a frustração de quem manda mensagem no domingo à noite e acha que foi ignorado. Pode deixar vazio.
+   */
+  horarioAtendimento?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * A faixa cinza no fim de todas as páginas da loja, com as listas de links. O CNPJ, o endereço, o telefone e as redes sociais que aparecem lá NÃO se editam aqui — eles vêm da tela "Dados da Loja", para você não ter que corrigir a mesma informação em dois lugares.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rodape".
+ */
+export interface Rodape {
+  id: number;
+  /**
+   * Cada lista vira uma coluna do rodapé, lado a lado. O normal são duas ou três: uma com as partes da loja ("Catálogo", "Vestuário") e outra com informação ("Sobre a Loja", "Trocas e Devoluções"). No celular elas viram uma embaixo da outra. Arraste para trocar a ordem.
+   */
+  colunas?:
+    | {
+        /**
+         * O nome em cima da coluna. Exemplo: "Loja" ou "Informações".
+         */
+        titulo: string;
+        /**
+         * Aparecem na ordem em que estiverem aqui. Arraste para reordenar.
+         */
+        links: {
+          /**
+           * O que o cliente lê e clica. Exemplo: "Trocas e Devoluções".
+           */
+          texto: string;
+          /**
+           * Para uma página da própria loja, escreva a partir da barra: /catalogo, /trocas, /sobre. Para um site de fora, o endereço completo começando com https://. Se estiver errado, o cliente cai numa página de erro — vale conferir clicando depois de salvar.
+           */
+          endereco: string;
+          id?: string | null;
+        }[];
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * A frase da última linha do rodapé. O ano e o nome da loja o site coloca sozinho — escreva só o resto. Exemplo: "Todos os direitos reservados." vira "© 2026 Elessar Records. Todos os direitos reservados."
+   */
+  textoCopyright?: string | null;
+  /**
+   * Aparece no rodapé para o cliente saber como pode pagar antes de chegar no carrinho. Separe com o sinal · ou com barra. Este texto é só informativo: quais pagamentos funcionam de verdade é definido no Mercado Pago, não aqui.
+   */
+  formasDePagamento?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * O conteúdo da página que conta a história da Elessar. É a página que abre quando o cliente clica em "Sobre a Loja" no rodapé do site. Tudo que você escrever aqui aparece lá assim que salvar.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1594,6 +1751,69 @@ export interface HomepageSelect<T extends boolean = true> {
         artist?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "configuracoes-gerais_select".
+ */
+export interface ConfiguracoesGeraisSelect<T extends boolean = true> {
+  nomeDaLoja?: T;
+  tagline?: T;
+  emailContato?: T;
+  telefone?: T;
+  endereco?: T;
+  horarioAtendimento?: T;
+  instagram?: T;
+  youtube?: T;
+  facebook?: T;
+  razaoSocial?: T;
+  cnpj?: T;
+  avisoAtivo?: T;
+  avisoTexto?: T;
+  avisoLink?: T;
+  avisoValidoAte?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "whatsapp_select".
+ */
+export interface WhatsappSelect<T extends boolean = true> {
+  ativo?: T;
+  numero?: T;
+  mensagemPadrao?: T;
+  mensagemNoProduto?: T;
+  textoDoBotao?: T;
+  horarioAtendimento?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rodape_select".
+ */
+export interface RodapeSelect<T extends boolean = true> {
+  colunas?:
+    | T
+    | {
+        titulo?: T;
+        links?:
+          | T
+          | {
+              texto?: T;
+              endereco?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  textoCopyright?: T;
+  formasDePagamento?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

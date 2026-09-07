@@ -119,6 +119,36 @@ async function main(): Promise<void> {
     )
   }
 
+  // ── 3b. Quem consegue entrar no painel ───────────────────────────────────
+  // O papel de admin não fica guardado no banco de forma estável: o hook
+  // `beforeChange` de Users recalcula a cada gravação a partir de ADMIN_EMAILS
+  // (src/utils/adminEmails.ts). Se essa variável estiver ausente no ambiente
+  // que gravou, TODO usuário salvo vira 'client' — inclusive o dono.
+  console.log('\n═══ ACESSO AO PAINEL ═══')
+  const admins = await client.query<{ email: string; role: string }>(
+    `SELECT email, role FROM users ORDER BY role, email`,
+  )
+  if (admins.rows.length === 0) {
+    console.log('  (nenhum usuário cadastrado)')
+  } else {
+    for (const u of admins.rows) {
+      console.log(`  ${u.role === 'admin' ? '[ADMIN] ' : '[cliente]'} ${u.email}`)
+    }
+  }
+  const listaAdmins = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean)
+  console.log(
+    listaAdmins.length > 0
+      ? `\n  ADMIN_EMAILS neste computador: ${listaAdmins.length} e-mail(s) configurado(s)`
+      : '\n  ✗ ADMIN_EMAILS NÃO está configurada NESTE COMPUTADOR.\n' +
+          '    Enquanto estiver assim, salvar qualquer usuário pelo painel local o\n' +
+          '    rebaixa para cliente comum — e como o banco é o mesmo da produção,\n' +
+          '    o rebaixamento vale para o site no ar. Configure no .env local o\n' +
+          '    MESMO valor que está na Vercel.',
+  )
+
   // ── 4. Volume de conteúdo já cadastrado ──────────────────────────────────
   console.log('\n═══ CONTEÚDO JÁ CADASTRADO ═══')
   for (const t of ['records', 'apparel', 'media', 'orders', 'artists', 'banners']) {
