@@ -105,6 +105,18 @@ export default buildConfig({
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   db: vercelPostgresAdapter({
+    // Desliga o push automático de schema.
+    //
+    // Antes disto, `npm run dev` comparava o schema do código com o do banco e
+    // aplicava a diferença na hora (`db-vercel-postgres/dist/connect.js:81`).
+    // Como o DATABASE_URI aponta para o MESMO Neon que a Vercel usa, cada boot
+    // do desenvolvimento era um deploy de schema em produção, sem revisão — e um
+    // rename de campo viraria coluna apagada com o acervo dentro.
+    //
+    // Com `push: false`, toda mudança de tabela passa a exigir migration
+    // explícita: `npx payload migrate:create` gera o SQL, você lê, e
+    // `npx payload migrate` aplica.
+    push: false,
     pool: {
       connectionString: process.env.DATABASE_URI || process.env.DATABASE_URL || process.env.POSTGRES_URL || '',
     },

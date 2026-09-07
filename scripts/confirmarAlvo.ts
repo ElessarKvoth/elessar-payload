@@ -47,9 +47,16 @@ export function alvoDoBanco(): AlvoDoBanco {
 
 /**
  * Interrompe o processo a menos que a pessoa digite o nome do banco.
- * `acao` descreve o estrago em uma linha, para aparecer no aviso.
+ *
+ * `acao` descreve o que vai acontecer, em uma linha.
+ * `consequencia` explica o risco. Tem um padrão destrutivo porque a maioria dos
+ * usos é destrutiva — mas quem chama DEVE passar o texto certo quando não for,
+ * senão o aviso mente e as pessoas param de ler avisos.
  */
-export async function exigirConfirmacao(acao: string): Promise<AlvoDoBanco> {
+export async function exigirConfirmacao(
+  acao: string,
+  consequencia = 'Se houver acervo cadastrado, ele será perdido.',
+): Promise<AlvoDoBanco> {
   const alvo = alvoDoBanco()
 
   if (alvo.local) {
@@ -67,7 +74,7 @@ export async function exigirConfirmacao(acao: string): Promise<AlvoDoBanco> {
   console.log(`     Ação: ${acao}`)
   console.log('')
   console.log('     Este é o mesmo banco que o site em produção usa.')
-  console.log('     Se houver acervo cadastrado, ele será perdido.')
+  console.log(`     ${consequencia}`)
   console.log('')
 
   if (!stdin.isTTY) {
