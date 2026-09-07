@@ -8,6 +8,7 @@ import * as migration_20260907_171110 from './20260907_171110';
 import * as migration_20260907_173225 from './20260907_173225';
 import * as migration_20260907_180747 from './20260907_180747';
 import * as migration_20260907_221118_etapa2_verificacao_email from './20260907_221118_etapa2_verificacao_email';
+import * as migration_20260907_224103_etapa5_aceite_de_termos from './20260907_224103_etapa5_aceite_de_termos';
 
 export const migrations = [
   {
@@ -58,6 +59,11 @@ export const migrations = [
   {
     up: migration_20260907_221118_etapa2_verificacao_email.up,
     down: migration_20260907_221118_etapa2_verificacao_email.down,
-    name: '20260907_221118_etapa2_verificacao_email'
+    name: '20260907_221118_etapa2_verificacao_email',
+  },
+  {
+    up: migration_20260907_224103_etapa5_aceite_de_termos.up,
+    down: migration_20260907_224103_etapa5_aceite_de_termos.down,
+    name: '20260907_224103_etapa5_aceite_de_termos'
   },
 ];

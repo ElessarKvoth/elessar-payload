@@ -67,6 +67,16 @@ export const PaginasLegais: GlobalConfig = {
   },
   fields: [
     {
+      name: 'versaoDosTermos',
+      label: 'Versão dos termos em vigor',
+      type: 'text',
+      defaultValue: '1.0',
+      admin: {
+        description:
+          'O número da versão das regras que valem hoje. Ele é gravado na conta de cada cliente no momento do cadastro, junto com a data e o texto exato que ele aceitou. MUDE ESTE NÚMERO sempre que alterar algo importante nos Termos de Uso ou na Política de Privacidade (por exemplo: de 1.0 para 1.1): quem se cadastrou com a versão antiga passa a ser tratado como pendente de novo aceite, e a loja pede a concordância na próxima vez que a pessoa entrar. Corrigir uma vírgula ou um erro de digitação não exige mudar a versão.',
+      },
+    },
+    {
       type: 'tabs',
       tabs: [
         {
@@ -150,6 +160,23 @@ export const PaginasLegais: GlobalConfig = {
                 tituloPadrao: 'Termos de Uso',
                 descricaoDoTexto:
                   'As condições para usar o site e comprar: quem pode criar conta, o que acontece se um produto anunciado acabar, e o que a loja não se responsabiliza. Escreva em linguagem simples — termo que ninguém entende não protege ninguém.',
+              }),
+            },
+          ],
+        },
+        {
+          label: 'Cookies',
+          description:
+            'O que o site guarda no navegador do cliente e para quê. A LGPD trata cookie que identifica pessoa como dado pessoal, então esta página precisa existir junto com a de privacidade.',
+          fields: [
+            {
+              name: 'cookies',
+              label: false,
+              type: 'group',
+              fields: camposDaPagina({
+                tituloPadrao: 'Política de Cookies',
+                descricaoDoTexto:
+                  'Explique quais cookies o site usa e para quê: os que fazem o carrinho e o login funcionarem (sem eles a loja não funciona), e os de medição de audiência, se você usar. Diga como o cliente desliga os opcionais e o que ele perde ao desligar.',
               }),
             },
           ],

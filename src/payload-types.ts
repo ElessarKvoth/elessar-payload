@@ -725,6 +725,30 @@ export interface User {
    */
   verificacaoUltimoEnvioEm?: string | null;
   verificacaoTokenUsadoHash?: string | null;
+  /**
+   * Marcado no momento do cadastro. Sem este aceite a conta não é criada. Não pode ser alterado depois — é prova do que o cliente concordou.
+   */
+  aceitouTermos?: boolean | null;
+  /**
+   * Qual versão dos termos estava no ar quando o cliente se cadastrou. Quando você muda a versão em "Páginas de Regras", quem tem versão antiga passa a ser considerado pendente de novo aceite.
+   */
+  versaoTermosAceita?: string | null;
+  /**
+   * Momento exato em que o cliente aceitou, no horário do servidor.
+   */
+  dataHoraAceite?: string | null;
+  /**
+   * Endereço de rede de onde veio o cadastro. Guardado só para comprovar o aceite numa eventual contestação.
+   */
+  ipDoAceite?: string | null;
+  /**
+   * Código único calculado a partir do texto exato dos termos naquele momento. Serve para provar QUE TEXTO o cliente aceitou, e não apenas qual número de versão — se alguém editar o texto sem trocar a versão, este código passa a não bater.
+   */
+  hashDosTermosAceitos?: string | null;
+  /**
+   * OPCIONAL e separado do aceite dos termos, como manda a LGPD: consentimento de marketing não pode vir embutido no aceite obrigatório. O cliente pode ligar e desligar quando quiser.
+   */
+  aceitouComunicacoesMarketing?: boolean | null;
   addresses?:
     | {
         label?: string | null;
@@ -1166,6 +1190,12 @@ export interface UsersSelect<T extends boolean = true> {
   verificacaoExpiraEm?: T;
   verificacaoUltimoEnvioEm?: T;
   verificacaoTokenUsadoHash?: T;
+  aceitouTermos?: T;
+  versaoTermosAceita?: T;
+  dataHoraAceite?: T;
+  ipDoAceite?: T;
+  hashDosTermosAceitos?: T;
+  aceitouComunicacoesMarketing?: T;
   addresses?:
     | T
     | {
@@ -1507,6 +1537,10 @@ export interface PaginaSobreNo {
  */
 export interface PaginasLegai {
   id: number;
+  /**
+   * O número da versão das regras que valem hoje. Ele é gravado na conta de cada cliente no momento do cadastro, junto com a data e o texto exato que ele aceitou. MUDE ESTE NÚMERO sempre que alterar algo importante nos Termos de Uso ou na Política de Privacidade (por exemplo: de 1.0 para 1.1): quem se cadastrou com a versão antiga passa a ser tratado como pendente de novo aceite, e a loja pede a concordância na próxima vez que a pessoa entrar. Corrigir uma vírgula ou um erro de digitação não exige mudar a versão.
+   */
+  versaoDosTermos?: string | null;
   comoComprar: {
     /**
      * O texto grande no topo da página. Exemplo: "Como comprar".
@@ -1626,6 +1660,34 @@ export interface PaginasLegai {
     titulo: string;
     /**
      * As condições para usar o site e comprar: quem pode criar conta, o que acontece se um produto anunciado acabar, e o que a loja não se responsabiliza. Escreva em linguagem simples — termo que ninguém entende não protege ninguém. Enquanto estiver vazio, esta página não aparece no site — dá para escrever aos poucos e salvar quantas vezes quiser.
+     */
+    texto?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    /**
+     * Aparece no fim da página como "Última atualização". Mude sempre que alterar as regras: é o que mostra ao cliente qual versão valia quando ele comprou, e é a sua defesa numa discussão. Pode deixar vazio.
+     */
+    atualizadoEm?: string | null;
+  };
+  cookies: {
+    /**
+     * O texto grande no topo da página. Exemplo: "Política de Cookies".
+     */
+    titulo: string;
+    /**
+     * Explique quais cookies o site usa e para quê: os que fazem o carrinho e o login funcionarem (sem eles a loja não funciona), e os de medição de audiência, se você usar. Diga como o cliente desliga os opcionais e o que ele perde ao desligar. Enquanto estiver vazio, esta página não aparece no site — dá para escrever aos poucos e salvar quantas vezes quiser.
      */
     texto?: {
       root: {
@@ -1856,6 +1918,7 @@ export interface PaginaSobreNosSelect<T extends boolean = true> {
  * via the `definition` "paginas-legais_select".
  */
 export interface PaginasLegaisSelect<T extends boolean = true> {
+  versaoDosTermos?: T;
   comoComprar?:
     | T
     | {
@@ -1885,6 +1948,13 @@ export interface PaginasLegaisSelect<T extends boolean = true> {
         atualizadoEm?: T;
       };
   termos?:
+    | T
+    | {
+        titulo?: T;
+        texto?: T;
+        atualizadoEm?: T;
+      };
+  cookies?:
     | T
     | {
         titulo?: T;

@@ -66,6 +66,9 @@ if (existente.docs.length > 0) {
       _verified: true,
     },
     overrideAccess: true,
+    // Conta criada pelo servidor: não há pessoa do outro lado para aceitar os
+    // termos, e registrar um aceite que ninguém deu seria prova falsa.
+    context: { pularAceiteDeTermos: true },
   })
   console.log(`\n✅ Administrador criado: ${email}`)
   console.log('   Entre em /admin com esse e-mail e a senha do .env.\n')

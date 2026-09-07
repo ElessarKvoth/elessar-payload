@@ -1,10 +1,14 @@
 import type { CollectionConfig, TextField } from 'payload'
+import { APIError } from 'payload'
 
 import { isAdmin, isAdminOrSelf } from '../access/isAdmin'
 import { cpfValido } from '../utils/validarCpf'
 import { emailBase, storefrontUrl } from '../utils/emailTemplate'
 import { emailEhAdmin, listaAdminEmails } from '../utils/adminEmails'
 import { emailDeVerificacao, PRAZO_VERIFICACAO_HORAS, PRAZO_VERIFICACAO_MS } from '../utils/emailVerificacao'
+import { termosVigentes } from '../utils/termos'
+import { ipDoRequest } from '../utils/rateLimit'
+import { somenteServidor } from '../access/isAdmin'
 
 type WithRole = { role?: 'admin' | 'client' }
 
@@ -86,6 +90,40 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
+      // ── Aceite de termos: exigência e prova ───────────────────────────────
+      // A validação mora no SERVIDOR porque é aqui que ela vale. Um checkbox
+      // marcado no navegador prova apenas que existia um checkbox: qualquer um
+      // manda o POST direto na API sem ele. E os carimbos (versão, data, IP,
+      // hash) são calculados aqui, nunca recebidos do cliente — dado que o
+      // próprio interessado escreve não serve como prova.
+      async ({ data, operation, req }) => {
+        if (operation !== 'create') return data
+
+        const d = data as Record<string, unknown>
+
+        // Contas criadas pelo servidor (script de admin, seed) não passam por
+        // aceite: não há pessoa do outro lado para aceitar coisa alguma.
+        if (req.context?.pularAceiteDeTermos) return data
+
+        if (d.aceitouTermos !== true) {
+          throw new APIError(
+            'Para criar sua conta é preciso aceitar os Termos de Uso e a Política de Privacidade.',
+            400,
+          )
+        }
+
+        const vigentes = await termosVigentes(req.payload, req)
+
+        d.versaoTermosAceita = vigentes.versao
+        d.hashDosTermosAceitos = vigentes.hash
+        d.dataHoraAceite = new Date().toISOString()
+        d.ipDoAceite = ipDoRequest(req)
+
+        // Marketing é decisão separada e opcional: na dúvida, não.
+        d.aceitouComunicacoesMarketing = d.aceitouComunicacoesMarketing === true
+
+        return data
+      },
       ({ data, originalDoc, req }) => {
         const d = data as Record<string, unknown>
         const anterior = originalDoc as { email?: string; role?: 'admin' | 'client' } | undefined
@@ -271,6 +309,76 @@ export const Users: CollectionConfig = {
       access: { create: () => false, update: () => false, read: () => false },
       admin: { hidden: true },
       index: true,
+    },
+    // ── Aceite de termos: prova jurídica ─────────────────────────────────────
+    // Todos com `somenteServidor`: o cliente marca o checkbox no cadastro, e a
+    // partir daí nada mais escreve nestes campos — nem ele, nem o painel.
+    // `admin.readOnly` sozinho não bastaria: ele esconde o campo da tela e
+    // deixa a API aberta.
+    {
+      name: 'aceitouTermos',
+      label: 'Aceitou os Termos e a Política de Privacidade',
+      type: 'checkbox',
+      access: { create: () => true, update: () => false },
+      admin: {
+        readOnly: true,
+        description:
+          'Marcado no momento do cadastro. Sem este aceite a conta não é criada. Não pode ser alterado depois — é prova do que o cliente concordou.',
+      },
+    },
+    {
+      name: 'versaoTermosAceita',
+      label: 'Versão dos termos aceita',
+      access: somenteServidor,
+      type: 'text',
+      admin: {
+        readOnly: true,
+        description:
+          'Qual versão dos termos estava no ar quando o cliente se cadastrou. Quando você muda a versão em "Páginas de Regras", quem tem versão antiga passa a ser considerado pendente de novo aceite.',
+      },
+    },
+    {
+      name: 'dataHoraAceite',
+      label: 'Data e hora do aceite',
+      access: somenteServidor,
+      type: 'date',
+      admin: {
+        readOnly: true,
+        date: { pickerAppearance: 'dayAndTime', displayFormat: "dd/MM/yyyy 'às' HH:mm" },
+        description: 'Momento exato em que o cliente aceitou, no horário do servidor.',
+      },
+    },
+    {
+      name: 'ipDoAceite',
+      label: 'IP do aceite',
+      access: somenteServidor,
+      type: 'text',
+      admin: {
+        readOnly: true,
+        description:
+          'Endereço de rede de onde veio o cadastro. Guardado só para comprovar o aceite numa eventual contestação.',
+      },
+    },
+    {
+      name: 'hashDosTermosAceitos',
+      label: 'Impressão digital do texto aceito',
+      access: somenteServidor,
+      type: 'text',
+      admin: {
+        readOnly: true,
+        description:
+          'Código único calculado a partir do texto exato dos termos naquele momento. Serve para provar QUE TEXTO o cliente aceitou, e não apenas qual número de versão — se alguém editar o texto sem trocar a versão, este código passa a não bater.',
+      },
+    },
+    {
+      name: 'aceitouComunicacoesMarketing',
+      label: 'Aceita receber novidades por e-mail',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description:
+          'OPCIONAL e separado do aceite dos termos, como manda a LGPD: consentimento de marketing não pode vir embutido no aceite obrigatório. O cliente pode ligar e desligar quando quiser.',
+      },
     },
     {
       name: 'addresses',

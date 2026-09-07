@@ -29,6 +29,7 @@ import { mercadopagoWebhook } from './endpoints/mercadopagoWebhook'
 import { confirmarRetornoMercadoPago } from './endpoints/confirmarRetornoMercadoPago'
 import { verificarConta } from './endpoints/verificarConta'
 import { reenviarVerificacao } from './endpoints/reenviarVerificacao'
+import { entrar } from './endpoints/entrar'
 import { NOME_REMETENTE, REMETENTE_PADRAO } from './utils/enviarEmail'
 
 const filename = fileURLToPath(import.meta.url)
@@ -116,6 +117,7 @@ export default buildConfig({
     confirmarRetornoMercadoPago,
     verificarConta,
     reenviarVerificacao,
+    entrar,
   ],
   editor: lexicalEditor(),
   // ── E-mail: Resend é o único transporte oficial ─────────────────────────────

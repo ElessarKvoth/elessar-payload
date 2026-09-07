@@ -29,8 +29,18 @@ export const gerarToken = (): string => crypto.randomBytes(20).toString('hex')
  * em vez de "link inválido", que é a diferença entre o cliente entender que
  * está tudo certo e ele achar que a conta quebrou.
  */
-export const hashDoToken = (token: string): string =>
-  crypto.createHash('sha256').update(token).digest('hex')
+export const hashDoToken = (token: string): string => hashDeConteudo(token)
+
+/**
+ * SHA-256 de um texto qualquer, em hexadecimal.
+ *
+ * Além dos tokens, é o que registra QUAL texto de termos o cliente aceitou:
+ * guardar o documento inteiro em cada conta seria desperdício, e guardar só o
+ * número da versão não prova nada (o texto de uma versão pode ser editado
+ * depois). O hash prende o número ao conteúdo exato daquele momento.
+ */
+export const hashDeConteudo = (conteudo: string): string =>
+  crypto.createHash('sha256').update(conteudo, 'utf8').digest('hex')
 
 /**
  * Comparação em tempo constante.

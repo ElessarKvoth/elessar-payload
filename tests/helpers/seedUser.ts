@@ -32,6 +32,9 @@ export async function seedTestUser(): Promise<void> {
   await payload.create({
     collection: 'users',
     data: testUser,
+    // Conta de teste criada pelo servidor: pula a exigência de aceite dos
+    // termos, que só faz sentido para cadastro feito por uma pessoa.
+    context: { pularAceiteDeTermos: true },
   })
 }
 
