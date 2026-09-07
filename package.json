@@ -26,6 +26,7 @@
     "email:diag": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/diagnostico-email.ts",
     "conta:diag": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/diagnostico-conta.ts",
     "conta:destravar": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/destravar-conta.ts",
+    "legais:carregar": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/carregar-minutas-legais.ts",
     "admin:create": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/criar-admin.ts",
     "reset:db": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/reset-db.ts"
   },
