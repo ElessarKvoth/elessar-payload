@@ -39,8 +39,15 @@ export const Artists: CollectionConfig = {
     },
     {
       name: 'photo',
+      label: 'Foto do artista ou banda',
       type: 'upload',
       relationTo: 'media',
+      admin: {
+        description:
+          'Foto QUADRADA, no mínimo 1000 x 1000 pixels. Depois de escolher, use "Editar imagem" e ' +
+          'posicione o PONTO DE FOCO sobre o rosto (ou o centro do grupo): assim ele não é cortado ' +
+          'nos cards nem no destaque da página de artistas.',
+      },
     },
     {
       name: 'bio',

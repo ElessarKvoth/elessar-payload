@@ -52,8 +52,9 @@ export const Records: CollectionConfig = {
     defaultColumns: ['title', 'format', 'artist', 'genre', 'condition', 'stock', 'active', 'featured'],
   },
   access: {
+    // Só admin enxerga inativos; cliente logado vê o mesmo que um visitante.
     read: ({ req: { user } }) => {
-      if (user) return true
+      if ((user as { role?: string } | null)?.role === 'admin') return true
       return { active: { equals: true } }
     },
     create: isAdmin,
@@ -257,21 +258,35 @@ export const Records: CollectionConfig = {
     // ── Imagens ────────────────────────────────────────────────────────────
     {
       name: 'images',
-      label: 'Imagens',
+      label: 'Fotos do disco',
       type: 'array',
       required: true,
       minRows: 1,
+      admin: {
+        description:
+          'A primeira foto é a que aparece no catálogo. Use "Adicionar" para incluir mais ângulos — ' +
+          'o cliente passa entre elas com as setas na página do produto.',
+      },
       fields: [
         {
           name: 'image',
+          label: 'Foto',
           type: 'upload',
           relationTo: 'media',
           required: true,
+          admin: {
+            description:
+              'Foto QUADRADA (mesma largura e altura), no mínimo 1000 x 1000 pixels. ' +
+              'Se a sua não for quadrada, use "Editar imagem" para recortar.',
+          },
         },
         {
           name: 'altText',
-          label: 'Texto Alternativo',
+          label: 'Descrição da foto',
           type: 'text',
+          admin: {
+            description: 'Opcional. O que aparece na foto — ajuda no Google e em leitores de tela.',
+          },
         },
       ],
     },
@@ -323,7 +338,17 @@ export const Records: CollectionConfig = {
       fields: [
         { name: 'metaTitle', label: 'Título Meta', type: 'text', maxLength: 60 },
         { name: 'metaDescription', label: 'Descrição Meta', type: 'textarea', maxLength: 160 },
-        { name: 'ogImage', label: 'Imagem OG', type: 'upload', relationTo: 'media' },
+        {
+          name: 'ogImage',
+          label: 'Imagem de compartilhamento',
+          type: 'upload',
+          relationTo: 'media',
+          admin: {
+            description:
+              'Opcional. Aparece quando o link é compartilhado no WhatsApp, Instagram ou Facebook. ' +
+              'Formato deitado, 1200 x 630 pixels. Sem ela, o site usa a primeira foto do produto.',
+          },
+        },
       ],
     },
   ],

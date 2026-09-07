@@ -30,12 +30,30 @@ Após criar, vá em "Página Inicial" para escolher quais banners aparecem e em 
     // ── Imagem ─────────────────────────────────────────────────────────────
     {
       name: 'image',
-      label: 'Imagem de Fundo',
+      label: 'Imagem de fundo (computador)',
       type: 'upload',
       relationTo: 'media',
       admin: {
         description:
-          'DESIGN PRÓPRIO: suba a imagem já com texto e design prontos — deixe todos os campos abaixo em branco.\n\nBANNER COM TEXTO: use uma foto de fundo. Sem imagem = fundo verde escuro com logo.',
+          'Formato DEITADO, recomendado 2400 x 1200 pixels. Sem imagem = fundo verde escuro com logo.\n\n' +
+          'IMPORTANTE: depois de escolher, clique em "Editar imagem" e posicione o PONTO DE FOCO ' +
+          'no que não pode ser cortado. O computador mostra a imagem deitada e o celular mostra em pé — ' +
+          'o ponto de foco garante que o assunto apareça nos dois.\n\n' +
+          'DESIGN PRÓPRIO: se a imagem já vem com texto desenhado, deixe os campos de texto abaixo em branco ' +
+          'e preencha também a "Imagem para celular".',
+      },
+    },
+    {
+      name: 'imageMobile',
+      label: 'Imagem para celular (opcional)',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description:
+          'Só preencha se a imagem de cima tiver texto ou design que não pode ser cortado no celular. ' +
+          'Formato EM PÉ, recomendado 1080 x 1620 pixels.\n\n' +
+          'Deixando vazio, o site recorta a imagem do computador sozinho, respeitando o ponto de foco — ' +
+          'que é o suficiente na maioria dos casos.',
       },
     },
 

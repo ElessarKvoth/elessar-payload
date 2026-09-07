@@ -11,7 +11,7 @@ Payload CMS 3 + Next.js 15 (App Router) + PostgreSQL + TypeScript strict
 
 ## NEVER DO
 - Read .env or .env.* files — assume vars exist, never cat/read them
-- Run the dev server (npm run dev, next dev, payload dev)
+
 - Run database migrations automatically — show the command, don't execute
 - Install packages without explicit permission
 - Run git commands (commit, push, pull, merge)

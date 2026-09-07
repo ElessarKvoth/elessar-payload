@@ -25,6 +25,18 @@ import { confirmarRetornoMercadoPago } from './endpoints/confirmarRetornoMercado
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+const ORIGENS_PERMITIDAS = [
+  ...(process.env.FRONTEND_URL ?? '')
+    .split(',')
+    .map((u) => u.trim())
+    .filter(Boolean),
+  'https://elessarrecords.com.br',
+  'https://www.elessarrecords.com.br',
+  'https://elessar-front.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:3001',
+]
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -63,19 +75,12 @@ export default buildConfig({
     },
   },
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL,
-  cors: [
-    // FRONTEND_URL accepts comma-separated URLs for multiple environments
-    ...(process.env.FRONTEND_URL ?? '').split(',').map((u) => u.trim()).filter(Boolean),
-    'https://elessar-front.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:3001',
-  ],
-  csrf: [
-    ...(process.env.FRONTEND_URL ?? '').split(',').map((u) => u.trim()).filter(Boolean),
-    'https://elessar-front.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:3001',
-  ],
+  // Origens autorizadas a chamar a API pelo navegador. Sem a origem na lista, o
+  // browser bloqueia login, cotação de frete e checkout — mesmo com a API no ar.
+  // FRONTEND_URL aceita várias URLs separadas por vírgula; os domínios oficiais
+  // ficam fixos aqui como rede de segurança, para não dependerem de env var.
+  cors: ORIGENS_PERMITIDAS,
+  csrf: ORIGENS_PERMITIDAS,
   sharp,
   plugins: [],
 })

@@ -235,8 +235,17 @@ export interface Record {
         id?: string | null;
       }[]
     | null;
+  /**
+   * A primeira foto é a que aparece no catálogo. Use "Adicionar" para incluir mais ângulos — o cliente passa entre elas com as setas na página do produto.
+   */
   images: {
+    /**
+     * Foto QUADRADA (mesma largura e altura), no mínimo 1000 x 1000 pixels. Se a sua não for quadrada, use "Editar imagem" para recortar.
+     */
     image: number | Media;
+    /**
+     * Opcional. O que aparece na foto — ajuda no Google e em leitores de tela.
+     */
     altText?: string | null;
     id?: string | null;
   }[];
@@ -263,6 +272,9 @@ export interface Record {
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
+    /**
+     * Opcional. Aparece quando o link é compartilhado no WhatsApp, Instagram ou Facebook. Formato deitado, 1200 x 630 pixels. Sem ela, o site usa a primeira foto do produto.
+     */
     ogImage?: (number | null) | Media;
   };
   updatedAt: string;
@@ -281,6 +293,9 @@ export interface Artist {
    * Auto-generated from name. Can be overridden manually.
    */
   slug: string;
+  /**
+   * Foto QUADRADA, no mínimo 1000 x 1000 pixels. Depois de escolher, use "Editar imagem" e posicione o PONTO DE FOCO sobre o rosto (ou o centro do grupo): assim ele não é cortado nos cards nem no destaque da página de artistas.
+   */
   photo?: (number | null) | Media;
   bio?: string | null;
   /**
@@ -292,14 +307,21 @@ export interface Artist {
   createdAt: string;
 }
 /**
- * Biblioteca de imagens usadas nos produtos e banners.
+ * Todas as imagens do site. Aceita JPG, PNG, WebP e GIF. Depois de escolher o arquivo, use "Editar imagem" para RECORTAR (escolher o pedaço que aparece) e para posicionar o PONTO DE FOCO — a mirinha marca o que nunca pode ser cortado, e o site respeita esse ponto em qualquer formato (card quadrado, banner largo no computador, banner alto no celular). Prefira imagens grandes: no mínimo 1000 x 1000 pixels.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
   id: number;
+  /**
+   * O que aparece na imagem, em poucas palavras (ex: "Capa do disco Paranoid, do Black Sabbath"). Usada por leitores de tela e pelo Google. Se deixar vazio, preenchemos com o nome do arquivo.
+   */
   alt?: string | null;
+  /**
+   * Preenchido automaticamente quando a imagem enviada é pequena demais.
+   */
+  avisoQualidade?: string | null;
   /**
    * Preenchido automaticamente após o upload.
    */
@@ -412,8 +434,17 @@ export interface Apparel {
    * Calculado automaticamente como soma de todas as variantes.
    */
   totalStock?: number | null;
+  /**
+   * A primeira foto é a que aparece no catálogo. Use "Adicionar" para incluir frente, costas e detalhes — o cliente passa entre elas com as setas na página do produto.
+   */
   images: {
+    /**
+     * Foto QUADRADA (mesma largura e altura), no mínimo 1000 x 1000 pixels. Se a sua não for quadrada, use "Editar imagem" para recortar.
+     */
     image: number | Media;
+    /**
+     * Opcional. O que aparece na foto — ajuda no Google e em leitores de tela.
+     */
     altText?: string | null;
     id?: string | null;
   }[];
@@ -436,6 +467,9 @@ export interface Apparel {
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
+    /**
+     * Opcional. Aparece quando o link é compartilhado no WhatsApp, Instagram ou Facebook. Formato deitado, 1200 x 630 pixels. Sem ela, o site usa a primeira foto do produto.
+     */
     ogImage?: (number | null) | Media;
   };
   updatedAt: string;
@@ -474,11 +508,19 @@ export interface Category {
 export interface Banner {
   id: number;
   /**
-   * DESIGN PRÓPRIO: suba a imagem já com texto e design prontos — deixe todos os campos abaixo em branco.
+   * Formato DEITADO, recomendado 2400 x 1200 pixels. Sem imagem = fundo verde escuro com logo.
    *
-   * BANNER COM TEXTO: use uma foto de fundo. Sem imagem = fundo verde escuro com logo.
+   * IMPORTANTE: depois de escolher, clique em "Editar imagem" e posicione o PONTO DE FOCO no que não pode ser cortado. O computador mostra a imagem deitada e o celular mostra em pé — o ponto de foco garante que o assunto apareça nos dois.
+   *
+   * DESIGN PRÓPRIO: se a imagem já vem com texto desenhado, deixe os campos de texto abaixo em branco e preencha também a "Imagem para celular".
    */
   image?: (number | null) | Media;
+  /**
+   * Só preencha se a imagem de cima tiver texto ou design que não pode ser cortado no celular. Formato EM PÉ, recomendado 1080 x 1620 pixels.
+   *
+   * Deixando vazio, o site recorta a imagem do computador sozinho, respeitando o ponto de foco — que é o suficiente na maioria dos casos.
+   */
+  imageMobile?: (number | null) | Media;
   /**
    * Texto principal. Deixe em branco se a imagem já tiver o texto desenhado.
    */
@@ -658,6 +700,9 @@ export interface User {
    */
   cpf: string;
   birthDate?: string | null;
+  /**
+   * Definido automaticamente: é admin quem estiver em ADMIN_EMAILS no .env do servidor. Para promover alguém, edite a variável e faça o deploy — não dá para mudar por aqui.
+   */
   role?: ('admin' | 'client') | null;
   addresses?:
     | {
@@ -945,6 +990,7 @@ export interface ApparelSelect<T extends boolean = true> {
  */
 export interface BannersSelect<T extends boolean = true> {
   image?: T;
+  imageMobile?: T;
   title?: T;
   subtitle?: T;
   link?: T;
@@ -1000,6 +1046,7 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  avisoQualidade?: T;
   cloudinaryURL?: T;
   updatedAt?: T;
   createdAt?: T;

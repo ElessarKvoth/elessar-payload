@@ -3,6 +3,7 @@ import type { CollectionConfig, TextField } from 'payload'
 import { isAdmin, isAdminOrSelf } from '../access/isAdmin'
 import { cpfValido } from '../utils/validarCpf'
 import { emailBase, storefrontUrl } from '../utils/emailTemplate'
+import { emailEhAdmin } from '../utils/adminEmails'
 
 type WithRole = { role?: 'admin' | 'client' }
 
@@ -88,21 +89,18 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      async ({ data, req, operation }) => {
+      ({ data, originalDoc }) => {
         const d = data as Record<string, unknown>
 
-        if (operation === 'create') {
-          const { totalDocs } = await req.payload.count({ collection: 'users', overrideAccess: true })
-          if (totalDocs === 0) {
-            d.role = 'admin'
-            return data
-          }
-        }
+        // O papel NUNCA vem do cliente nem do painel: é derivado exclusivamente
+        // do e-mail estar (ou não) em ADMIN_EMAILS, lido do .env do servidor.
+        //
+        // Antes, o primeiro usuário criado virava admin automaticamente. Com o
+        // banco zerado e o cadastro da loja aberto ao público, o primeiro
+        // visitante a se registrar ganharia o painel inteiro.
+        const email = String(d.email ?? (originalDoc as { email?: string } | undefined)?.email ?? '')
+        d.role = emailEhAdmin(email) ? 'admin' : 'client'
 
-        // Prevent non-admins from promoting themselves to admin
-        if (d.role === 'admin' && (req.user as WithRole | null)?.role !== 'admin') {
-          delete d.role
-        }
         return data
       },
     ],
@@ -169,11 +167,18 @@ export const Users: CollectionConfig = {
         { label: 'Administrador', value: 'admin' },
         { label: 'Cliente', value: 'client' },
       ],
+      // Ninguém escreve neste campo — nem admin, nem pela API. O valor é
+      // recalculado no beforeChange a partir de ADMIN_EMAILS.
       access: {
-        create: ({ req: { user } }) => (user as WithRole | null)?.role === 'admin',
-        update: ({ req: { user } }) => (user as WithRole | null)?.role === 'admin',
+        create: () => false,
+        update: () => false,
       },
-      admin: { condition: (data) => Boolean(data.id) },
+      admin: {
+        readOnly: true,
+        condition: (data) => Boolean(data.id),
+        description:
+          'Definido automaticamente: é admin quem estiver em ADMIN_EMAILS no .env do servidor. Para promover alguém, edite a variável e faça o deploy — não dá para mudar por aqui.',
+      },
     },
     {
       name: '_verified',

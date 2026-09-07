@@ -10,8 +10,17 @@ import { confirmarPagamentoMercadoPago } from '../utils/confirmarPagamentoMercad
 function assinaturaValida(req: PayloadRequest, paymentId: string): boolean {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET
   if (!secret) {
+    // Em produção, sem segredo não há como provar que a notificação veio mesmo
+    // do Mercado Pago — recusa em vez de confiar. Em desenvolvimento apenas
+    // avisa, para não travar testes locais sem webhook configurado.
+    if (process.env.MERCADOPAGO_ENV === 'production') {
+      req.payload.logger.error(
+        '[mercadopago] MERCADOPAGO_WEBHOOK_SECRET ausente em produção — notificação recusada.',
+      )
+      return false
+    }
     req.payload.logger.warn(
-      '[mercadopago] MERCADOPAGO_WEBHOOK_SECRET não configurado — assinatura do webhook não validada.',
+      '[mercadopago] MERCADOPAGO_WEBHOOK_SECRET não configurado — assinatura não validada (modo teste).',
     )
     return true
   }
