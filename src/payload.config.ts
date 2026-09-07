@@ -27,6 +27,9 @@ import { cotarFrete } from './endpoints/cotarFrete'
 import { criarPagamentoMercadoPago } from './endpoints/criarPagamentoMercadoPago'
 import { mercadopagoWebhook } from './endpoints/mercadopagoWebhook'
 import { confirmarRetornoMercadoPago } from './endpoints/confirmarRetornoMercadoPago'
+import { verificarConta } from './endpoints/verificarConta'
+import { reenviarVerificacao } from './endpoints/reenviarVerificacao'
+import { NOME_REMETENTE, REMETENTE_PADRAO } from './utils/enviarEmail'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -106,17 +109,72 @@ export default buildConfig({
     PerguntasFrequentes,
     ConfiguracoesDeFrete,
   ],
-  endpoints: [cotarFrete, criarPagamentoMercadoPago, mercadopagoWebhook, confirmarRetornoMercadoPago],
+  endpoints: [
+    cotarFrete,
+    criarPagamentoMercadoPago,
+    mercadopagoWebhook,
+    confirmarRetornoMercadoPago,
+    verificarConta,
+    reenviarVerificacao,
+  ],
   editor: lexicalEditor(),
-  // Sem RESEND_API_KEY o Payload cai no transporte padrão (loga no console em vez
-  // de enviar) — o boot não quebra, mas nenhum e-mail sai de verdade.
+  // ── E-mail: Resend é o único transporte oficial ─────────────────────────────
+  //
+  // A credencial é separada por ambiente pela mesma disciplina do Mercado Pago:
+  // uma RESEND_API_KEY no .env local (chave de teste) e outra nas variáveis da
+  // Vercel (chave de produção). O código não escolhe nada — lê a que existir.
+  //
+  // Sem RESEND_API_KEY o Payload cai no adapter de console: o boot NÃO quebra,
+  // mas nenhum e-mail sai de verdade. O aviso no `onInit` abaixo existe para
+  // que isso nunca passe despercebido em desenvolvimento.
+  //
+  // EMAIL_REDIRECT_TO (opcional, só em dev): manda TODO e-mail para um único
+  // endereço, para testar o fluxo real sem risco de escrever para cliente.
   email: process.env.RESEND_API_KEY
     ? resendAdapter({
-        defaultFromAddress: process.env.EMAIL_FROM || 'nao-responda@elessarrecords.com.br',
-        defaultFromName: 'Elessar Records',
+        defaultFromAddress: process.env.EMAIL_FROM || REMETENTE_PADRAO,
+        defaultFromName: NOME_REMETENTE,
         apiKey: process.env.RESEND_API_KEY,
+        ...(process.env.EMAIL_REDIRECT_TO
+          ? { overrideRecipientAddress: process.env.EMAIL_REDIRECT_TO }
+          : {}),
       })
     : undefined,
+  onInit: (payload) => {
+    const remetente = process.env.EMAIL_FROM || REMETENTE_PADRAO
+
+    if (!process.env.RESEND_API_KEY) {
+      payload.logger.warn(
+        '[email] RESEND_API_KEY AUSENTE — nenhum e-mail será enviado de verdade.\n' +
+          '        Confirmação de conta, recuperação de senha e avisos de acesso vão\n' +
+          '        apenas aparecer neste console. Para enviar de verdade, adicione a\n' +
+          '        chave ao .env (desenvolvimento) ou às variáveis da Vercel (produção).',
+      )
+    } else {
+      payload.logger.info(`[email] Resend ativo — remetente ${NOME_REMETENTE} <${remetente}>`)
+    }
+
+    if (process.env.EMAIL_REDIRECT_TO) {
+      payload.logger.warn(
+        `[email] EMAIL_REDIRECT_TO ativo: TODO e-mail vai para ${process.env.EMAIL_REDIRECT_TO}, ` +
+          'ignorando o destinatário real. Isso NUNCA deve estar ligado em produção.',
+      )
+    }
+
+    // Chave de e-mail em variável NEXT_PUBLIC_* vaza para o bundle do navegador,
+    // ou seja, para qualquer visitante. Falha alto em vez de esperar o incidente.
+    const publicaVazada = Object.keys(process.env).find(
+      (chave) =>
+        chave.startsWith('NEXT_PUBLIC_') &&
+        (chave.includes('RESEND') || process.env[chave]?.startsWith('re_')),
+    )
+    if (publicaVazada) {
+      payload.logger.error(
+        `[email] PERIGO: a variável ${publicaVazada} é pública (NEXT_PUBLIC_*) e parece conter ` +
+          'uma credencial do Resend. Remova-a do .env e da Vercel e gere uma chave nova.',
+      )
+    }
+  },
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),

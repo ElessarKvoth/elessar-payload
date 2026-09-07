@@ -37,3 +37,23 @@ export const isAdminOrCustomer: Access = ({ req: { user } }) => {
 }
 
 export const isAdminOrPublic: Access = () => true
+
+/**
+ * Logado E com e-mail confirmado.
+ *
+ * REFORÇO, não correção: a estratégia JWT já recusa autenticar conta não
+ * verificada quando `auth.verify` está ligado — ela recarrega o usuário a cada
+ * requisição e testa `user._verified` (auth/strategies/jwt.js:78). Ou seja,
+ * hoje `req.user` nunca chega aqui sem confirmação.
+ *
+ * A trava existe porque essa garantia mora numa condição do framework, longe
+ * daqui: bastaria alguém remover `auth.verify` da collection Users — ou o
+ * Payload mudar esse comportamento numa atualização — para que comprar sem
+ * confirmar e-mail voltasse a ser possível, em silêncio. Aqui a exigência fica
+ * escrita no lugar onde ela importa.
+ */
+export const isVerificadoOuAdmin: Access = ({ req: { user } }) => {
+  if (!user) return false
+  if ((user as WithRole).role === 'admin') return true
+  return (user as { _verified?: boolean | null })._verified === true
+}

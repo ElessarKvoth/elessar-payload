@@ -716,6 +716,15 @@ export interface User {
    * Definido automaticamente: é admin quem estiver em ADMIN_EMAILS no .env do servidor. Para promover alguém, edite a variável e faça o deploy — não dá para mudar por aqui.
    */
   role?: ('admin' | 'client') | null;
+  /**
+   * O link enviado por e-mail vale 24 horas. Depois disso o cliente precisa pedir um novo pela loja.
+   */
+  verificacaoExpiraEm?: string | null;
+  /**
+   * Serve para limitar reenvios: um a cada minuto, no máximo cinco por hora. Evita que a conta de alguém vire ferramenta de spam.
+   */
+  verificacaoUltimoEnvioEm?: string | null;
+  verificacaoTokenUsadoHash?: string | null;
   addresses?:
     | {
         label?: string | null;
@@ -1154,6 +1163,9 @@ export interface UsersSelect<T extends boolean = true> {
   cpf?: T;
   birthDate?: T;
   role?: T;
+  verificacaoExpiraEm?: T;
+  verificacaoUltimoEnvioEm?: T;
+  verificacaoTokenUsadoHash?: T;
   addresses?:
     | T
     | {

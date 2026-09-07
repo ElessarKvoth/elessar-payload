@@ -7,6 +7,7 @@ import * as migration_20260907_155313 from './20260907_155313';
 import * as migration_20260907_171110 from './20260907_171110';
 import * as migration_20260907_173225 from './20260907_173225';
 import * as migration_20260907_180747 from './20260907_180747';
+import * as migration_20260907_221118_etapa2_verificacao_email from './20260907_221118_etapa2_verificacao_email';
 
 export const migrations = [
   {
@@ -52,6 +53,11 @@ export const migrations = [
   {
     up: migration_20260907_180747.up,
     down: migration_20260907_180747.down,
-    name: '20260907_180747'
+    name: '20260907_180747',
+  },
+  {
+    up: migration_20260907_221118_etapa2_verificacao_email.up,
+    down: migration_20260907_221118_etapa2_verificacao_email.down,
+    name: '20260907_221118_etapa2_verificacao_email'
   },
 ];

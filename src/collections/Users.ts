@@ -3,7 +3,8 @@ import type { CollectionConfig, TextField } from 'payload'
 import { isAdmin, isAdminOrSelf } from '../access/isAdmin'
 import { cpfValido } from '../utils/validarCpf'
 import { emailBase, storefrontUrl } from '../utils/emailTemplate'
-import { emailEhAdmin } from '../utils/adminEmails'
+import { emailEhAdmin, listaAdminEmails } from '../utils/adminEmails'
+import { emailDeVerificacao, PRAZO_VERIFICACAO_HORAS, PRAZO_VERIFICACAO_MS } from '../utils/emailVerificacao'
 
 type WithRole = { role?: 'admin' | 'client' }
 
@@ -51,18 +52,14 @@ export const Users: CollectionConfig = {
   },
   auth: {
     tokenExpiration: 7200,
+    // Assunto e corpo vêm de `emailDeVerificacao` para não divergirem do
+    // reenvio — os dois caminhos precisam apontar para a mesma URL e prometer
+    // o mesmo prazo.
     verify: {
-      generateEmailSubject: () => 'Confirme sua conta — Elessar Records',
+      generateEmailSubject: ({ user }) =>
+        emailDeVerificacao({ nome: (user as { name?: string }).name, token: '' }).assunto,
       generateEmailHTML: ({ token, user }) =>
-        emailBase({
-          titulo: 'Bem-vindo à Elessar Records',
-          saudacao: `Olá, ${(user as { name?: string }).name ?? ''}`.trim(),
-          corpo:
-            'Sua conta foi criada. Para começar a comprar, confirme seu e-mail clicando no botão abaixo.',
-          botaoTexto: 'Confirmar minha conta',
-          botaoUrl: `${storefrontUrl()}/verificar-email?token=${token}`,
-          rodape: 'Se você não criou esta conta, pode ignorar este e-mail.',
-        }),
+        emailDeVerificacao({ nome: (user as { name?: string }).name, token: token ?? '' }).html,
     },
     forgotPassword: {
       generateEmailSubject: () => 'Redefinir sua senha — Elessar Records',
@@ -89,8 +86,34 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      ({ data, originalDoc }) => {
+      ({ data, originalDoc, req }) => {
         const d = data as Record<string, unknown>
+        const anterior = originalDoc as { email?: string; role?: 'admin' | 'client' } | undefined
+        const email = String(d.email ?? anterior?.email ?? '')
+
+        // ── Rede de segurança: ADMIN_EMAILS vazia ────────────────────────────
+        // Lista vazia é ERRO DE CONFIGURAÇÃO, não ordem de demitir todo mundo.
+        //
+        // Sem esta guarda, rodar o servidor sem a variável (um .env local
+        // incompleto, um deploy em que ela não foi copiada) rebaixava a conta
+        // do administrador para cliente na PRIMEIRA vez que ela fosse salva —
+        // inclusive quando o próprio dono editasse o telefone. E como
+        // desenvolvimento e produção apontam para o mesmo banco Neon, o
+        // rebaixamento ia direto para a loja no ar, sem volta pelo painel
+        // (quem perdeu o painel não consegue entrar para se promover).
+        //
+        // Sintoma que isso produz: "entrei no painel uma vez e nunca mais".
+        if (listaAdminEmails().length === 0) {
+          req.payload.logger.error(
+            '[users] ADMIN_EMAILS está vazia — o papel de ' +
+              `${email || 'conta sem e-mail'} foi PRESERVADO em vez de recalculado. ` +
+              'Defina ADMIN_EMAILS no .env do servidor (e nas variáveis da Vercel), ' +
+              'senão ninguém consegue ser promovido a administrador.',
+          )
+          // Update preserva o papel atual; criação cai em cliente (nunca admin).
+          d.role = anterior?.role ?? 'client'
+          return data
+        }
 
         // O papel NUNCA vem do cliente nem do painel: é derivado exclusivamente
         // do e-mail estar (ou não) em ADMIN_EMAILS, lido do .env do servidor.
@@ -98,10 +121,33 @@ export const Users: CollectionConfig = {
         // Antes, o primeiro usuário criado virava admin automaticamente. Com o
         // banco zerado e o cadastro da loja aberto ao público, o primeiro
         // visitante a se registrar ganharia o painel inteiro.
-        const email = String(d.email ?? (originalDoc as { email?: string } | undefined)?.email ?? '')
         d.role = emailEhAdmin(email) ? 'admin' : 'client'
 
         return data
+      },
+    ],
+    afterChange: [
+      // Carimba o prazo do link de confirmação recém-criado.
+      //
+      // Precisa ser aqui, e não no beforeChange: o Payload só gera o
+      // `_verificationToken` DENTRO da operação de criação, depois dos hooks de
+      // gravação (collections/operations/create.js:183). No beforeChange ainda
+      // não existe token para datar.
+      //
+      // Grava por `db.updateOne` de propósito: escreve só esta coluna, sem
+      // disparar de novo os hooks da collection nem passar por validação de
+      // campo — é carimbo de sistema, não edição de cadastro.
+      async ({ doc, operation, req, context }) => {
+        if (operation !== 'create' || context.pularPrazoVerificacao) return
+        if ((doc as { _verified?: boolean | null })._verified) return
+
+        await req.payload.db.updateOne({
+          collection: 'users',
+          id: doc.id,
+          data: { verificacaoExpiraEm: new Date(Date.now() + PRAZO_VERIFICACAO_MS).toISOString() },
+          req,
+          returning: false,
+        })
       },
     ],
   },
@@ -184,6 +230,47 @@ export const Users: CollectionConfig = {
       name: '_verified',
       type: 'checkbox',
       admin: { hidden: true },
+    },
+    // ── Confirmação de e-mail: campos de controle ────────────────────────────
+    // Todos são carimbo de sistema. `access` fechado (não `admin.readOnly`,
+    // que só esconde no painel e deixa a API aberta) e escrita apenas pelos
+    // endpoints, via db.updateOne.
+    {
+      name: 'verificacaoExpiraEm',
+      label: 'Link de confirmação vale até',
+      type: 'date',
+      access: { create: () => false, update: () => false },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        condition: (data) => Boolean(data.id) && data._verified !== true,
+        date: { pickerAppearance: 'dayAndTime', displayFormat: "dd/MM/yyyy 'às' HH:mm" },
+        description: `O link enviado por e-mail vale ${PRAZO_VERIFICACAO_HORAS} horas. Depois disso o cliente precisa pedir um novo pela loja.`,
+      },
+    },
+    {
+      name: 'verificacaoUltimoEnvioEm',
+      label: 'Última confirmação enviada em',
+      type: 'date',
+      access: { create: () => false, update: () => false },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        condition: (data) => Boolean(data.id) && data._verified !== true,
+        date: { pickerAppearance: 'dayAndTime', displayFormat: "dd/MM/yyyy 'às' HH:mm" },
+        description:
+          'Serve para limitar reenvios: um a cada minuto, no máximo cinco por hora. Evita que a conta de alguém vire ferramenta de spam.',
+      },
+    },
+    {
+      // Guarda o HASH do último token consumido — nunca o token.
+      // É o que permite responder "este link já foi usado" em vez de "link
+      // inválido" quando o cliente clica duas vezes no mesmo e-mail.
+      name: 'verificacaoTokenUsadoHash',
+      type: 'text',
+      access: { create: () => false, update: () => false, read: () => false },
+      admin: { hidden: true },
+      index: true,
     },
     {
       name: 'addresses',

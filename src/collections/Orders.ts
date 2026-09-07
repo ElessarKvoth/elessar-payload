@@ -1,7 +1,7 @@
 import type { CollectionConfig, CollectionSlug, NumberField } from 'payload'
 import { APIError } from 'payload'
 
-import { isAdmin, isAdminOrCustomer, somenteServidor } from '../access/isAdmin'
+import { isAdmin, isAdminOrCustomer, isVerificadoOuAdmin, somenteServidor } from '../access/isAdmin'
 import { cpfValido } from '../utils/validarCpf'
 import { criarEtiquetaSuperFrete } from '../utils/criarEtiquetaSuperFrete'
 import { construirPacoteDoPedido } from '../utils/construirPacoteDoPedido'
@@ -94,7 +94,9 @@ export const Orders: CollectionConfig = {
   },
   access: {
     read: isAdminOrCustomer,
-    create: ({ req: { user } }) => Boolean(user),
+    // Comprar exige e-mail confirmado. Ver a nota em access/isAdmin.ts sobre
+    // por que a trava é repetida aqui mesmo já existindo no framework.
+    create: isVerificadoOuAdmin,
     update: isAdmin,
     delete: isAdmin,
   },

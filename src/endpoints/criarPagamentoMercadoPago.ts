@@ -17,6 +17,18 @@ export const criarPagamentoMercadoPago: Endpoint = {
 
     if (!req.user) return resp({ erro: 'Não autenticado.' }, 401)
 
+    // Pagar exige e-mail confirmado, pela mesma razão que criar pedido exige.
+    // Reforço explícito: ver a nota em access/isAdmin.ts.
+    const contaVerificada =
+      (req.user as { _verified?: boolean | null })._verified === true ||
+      (req.user as { role?: string }).role === 'admin'
+    if (!contaVerificada) {
+      return resp(
+        { erro: 'Confirme seu e-mail antes de finalizar a compra.', estado: 'email_nao_confirmado' },
+        403,
+      )
+    }
+
     await addDataAndFileToRequest(req)
     const body = (req.data ?? {}) as { orderNumber?: unknown }
     const orderNumber = typeof body.orderNumber === 'string' ? body.orderNumber : ''
