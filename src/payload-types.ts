@@ -107,10 +107,16 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     homepage: Homepage;
+    'pagina-sobre-nos': PaginaSobreNo;
+    'paginas-legais': PaginasLegai;
+    'perguntas-frequentes': PerguntasFrequente;
     'configuracoes-de-frete': ConfiguracoesDeFrete;
   };
   globalsSelect: {
     homepage: HomepageSelect<false> | HomepageSelect<true>;
+    'pagina-sobre-nos': PaginaSobreNosSelect<false> | PaginaSobreNosSelect<true>;
+    'paginas-legais': PaginasLegaisSelect<false> | PaginasLegaisSelect<true>;
+    'perguntas-frequentes': PerguntasFrequentesSelect<false> | PerguntasFrequentesSelect<true>;
     'configuracoes-de-frete': ConfiguracoesDeFreteSelect<false> | ConfiguracoesDeFreteSelect<true>;
   };
   locale: null;
@@ -1253,6 +1259,278 @@ export interface Homepage {
   createdAt?: string | null;
 }
 /**
+ * O conteúdo da página que conta a história da Elessar. É a página que abre quando o cliente clica em "Sobre a Loja" no rodapé do site. Tudo que você escrever aqui aparece lá assim que salvar.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pagina-sobre-nos".
+ */
+export interface PaginaSobreNo {
+  id: number;
+  /**
+   * O texto grande no topo da página. Exemplo: "Sobre a Loja" ou "Nossa história".
+   */
+  titulo: string;
+  /**
+   * Uma ou duas linhas logo abaixo do título, em letra maior que o resto. Serve para resumir a loja em uma frase. Exemplo: "Discos selecionados a mão desde 2024." Pode deixar vazio — nesse caso a página começa direto no texto.
+   */
+  chamada?: string | null;
+  /**
+   * A história da loja, escrita normalmente. Use os botões no topo da caixa para deixar em negrito, criar títulos de seção ou fazer listas. Escreva em parágrafos curtos: fica mais fácil de ler no celular. Pode salvar pela metade e voltar depois.
+   */
+  texto?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Uma foto da loja, do acervo ou de você, exibida junto do texto. Opcional. Prefira uma foto deitada (mais larga que alta), com no mínimo 1600 pixels de largura.
+   */
+  imagem?: (number | null) | Media;
+  /**
+   * Blocos que aparecem embaixo do texto principal, na ordem em que estiverem aqui — arraste para reordenar. Use quando quiser separar assuntos, por exemplo "Como escolhemos os discos" ou "Onde nos encontrar". Se não precisar de nenhum, deixe vazio e a página mostra só o texto acima.
+   */
+  secoes?:
+    | {
+        /**
+         * Aparece como um subtítulo. Exemplo: "Como escolhemos os discos".
+         */
+        titulo: string;
+        texto: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        /**
+         * Opcional. Aparece ao lado do texto desta seção.
+         */
+        imagem?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * As páginas que explicam as regras da loja ao cliente: como comprar, prazos de entrega, trocas, privacidade e termos de uso. Escolha a aba da página que quer mexer. O que você escrever passa a valer no site assim que salvar, então releia antes.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "paginas-legais".
+ */
+export interface PaginasLegai {
+  id: number;
+  comoComprar: {
+    /**
+     * O texto grande no topo da página. Exemplo: "Como comprar".
+     */
+    titulo: string;
+    /**
+     * Explique o caminho da compra em passos curtos e numerados: escolher o produto, calcular o frete, pagar, receber. Diga quais formas de pagamento você aceita. Use a lista numerada dos botões acima — fica muito mais fácil de seguir que um texto corrido. Enquanto estiver vazio, esta página não aparece no site — dá para escrever aos poucos e salvar quantas vezes quiser.
+     */
+    texto?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    /**
+     * Aparece no fim da página como "Última atualização". Mude sempre que alterar as regras: é o que mostra ao cliente qual versão valia quando ele comprou, e é a sua defesa numa discussão. Pode deixar vazio.
+     */
+    atualizadoEm?: string | null;
+  };
+  entrega: {
+    /**
+     * O texto grande no topo da página. Exemplo: "Entrega e frete".
+     */
+    titulo: string;
+    /**
+     * Fale de embalagem, prazo de postagem e rastreio. Seja concreto com os prazos — "postamos em até 2 dias úteis" vale mais que "enviamos rapidamente", e é o que evita reclamação. Não prometa prazo dos Correios, que não depende de você. Enquanto estiver vazio, esta página não aparece no site — dá para escrever aos poucos e salvar quantas vezes quiser.
+     */
+    texto?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    /**
+     * Aparece no fim da página como "Última atualização". Mude sempre que alterar as regras: é o que mostra ao cliente qual versão valia quando ele comprou, e é a sua defesa numa discussão. Pode deixar vazio.
+     */
+    atualizadoEm?: string | null;
+  };
+  trocas: {
+    /**
+     * O texto grande no topo da página. Exemplo: "Trocas e devoluções".
+     */
+    titulo: string;
+    /**
+     * Diga o prazo para desistir da compra, em que estado o produto precisa voltar e por onde o cliente pede. Lembre que o Código de Defesa do Consumidor garante 7 dias corridos para arrependimento em compra pela internet — você pode dar mais, nunca menos. Enquanto estiver vazio, esta página não aparece no site — dá para escrever aos poucos e salvar quantas vezes quiser.
+     */
+    texto?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    /**
+     * Aparece no fim da página como "Última atualização". Mude sempre que alterar as regras: é o que mostra ao cliente qual versão valia quando ele comprou, e é a sua defesa numa discussão. Pode deixar vazio.
+     */
+    atualizadoEm?: string | null;
+  };
+  privacidade: {
+    /**
+     * O texto grande no topo da página. Exemplo: "Política de Privacidade".
+     */
+    titulo: string;
+    /**
+     * Explique quais dados você guarda (nome, e-mail, endereço, CPF), para que servem (entregar o pedido e emitir a etiqueta) e com quem são compartilhados (Correios ou transportadora, e o Mercado Pago no pagamento). Diga também como o cliente pede para apagar os dados dele. Enquanto estiver vazio, esta página não aparece no site — dá para escrever aos poucos e salvar quantas vezes quiser.
+     */
+    texto?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    /**
+     * Aparece no fim da página como "Última atualização". Mude sempre que alterar as regras: é o que mostra ao cliente qual versão valia quando ele comprou, e é a sua defesa numa discussão. Pode deixar vazio.
+     */
+    atualizadoEm?: string | null;
+  };
+  termos: {
+    /**
+     * O texto grande no topo da página. Exemplo: "Termos de Uso".
+     */
+    titulo: string;
+    /**
+     * As condições para usar o site e comprar: quem pode criar conta, o que acontece se um produto anunciado acabar, e o que a loja não se responsabiliza. Escreva em linguagem simples — termo que ninguém entende não protege ninguém. Enquanto estiver vazio, esta página não aparece no site — dá para escrever aos poucos e salvar quantas vezes quiser.
+     */
+    texto?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    /**
+     * Aparece no fim da página como "Última atualização". Mude sempre que alterar as regras: é o que mostra ao cliente qual versão valia quando ele comprou, e é a sua defesa numa discussão. Pode deixar vazio.
+     */
+    atualizadoEm?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * A lista de perguntas e respostas do site. Toda vez que um cliente perguntar a mesma coisa pela terceira vez, a resposta merece entrar aqui — cada pergunta bem respondida é uma mensagem a menos para você responder à mão. Esta página ainda está sendo montada no site; pode preencher desde já, que ela aparece assim que entrar no ar.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "perguntas-frequentes".
+ */
+export interface PerguntasFrequente {
+  id: number;
+  /**
+   * O texto grande no topo da página. Exemplo: "Perguntas Frequentes".
+   */
+  titulo: string;
+  /**
+   * Uma ou duas linhas antes da lista. Bom lugar para dizer o que fazer quando a dúvida não estiver na lista. Exemplo: "Não achou sua dúvida? Chame a gente no WhatsApp." Pode deixar vazio.
+   */
+  introducao?: string | null;
+  /**
+   * Aparecem no site na mesma ordem que estiverem aqui — arraste pela alça à esquerda para reordenar. Deixe as dúvidas mais comuns em cima. Para tirar uma pergunta do ar, apague a linha inteira.
+   */
+  perguntas?:
+    | {
+        /**
+         * Escreva do jeito que o cliente perguntaria, não do jeito técnico. "Em quanto tempo chega?" funciona melhor que "Prazo de entrega".
+         */
+        pergunta: string;
+        /**
+         * Responda direto na primeira frase e só depois explique. Se a resposta completa estiver em outra página, use o botão de link para mandar o cliente para lá.
+         */
+        resposta: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * Parâmetros do cálculo de frete (origem, caixa padrão e acréscimo). As transportadoras exibidas ao cliente — PAC, SEDEX, Jadlog, Loggi — são as que estiverem ATIVAS no painel da SuperFrete (Integrações → Configurações da integração). Ligue ou desligue por lá; aqui não há nada a configurar sobre isso.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1314,6 +1592,89 @@ export interface HomepageSelect<T extends boolean = true> {
     | {
         image?: T;
         artist?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pagina-sobre-nos_select".
+ */
+export interface PaginaSobreNosSelect<T extends boolean = true> {
+  titulo?: T;
+  chamada?: T;
+  texto?: T;
+  imagem?: T;
+  secoes?:
+    | T
+    | {
+        titulo?: T;
+        texto?: T;
+        imagem?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "paginas-legais_select".
+ */
+export interface PaginasLegaisSelect<T extends boolean = true> {
+  comoComprar?:
+    | T
+    | {
+        titulo?: T;
+        texto?: T;
+        atualizadoEm?: T;
+      };
+  entrega?:
+    | T
+    | {
+        titulo?: T;
+        texto?: T;
+        atualizadoEm?: T;
+      };
+  trocas?:
+    | T
+    | {
+        titulo?: T;
+        texto?: T;
+        atualizadoEm?: T;
+      };
+  privacidade?:
+    | T
+    | {
+        titulo?: T;
+        texto?: T;
+        atualizadoEm?: T;
+      };
+  termos?:
+    | T
+    | {
+        titulo?: T;
+        texto?: T;
+        atualizadoEm?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "perguntas-frequentes_select".
+ */
+export interface PerguntasFrequentesSelect<T extends boolean = true> {
+  titulo?: T;
+  introducao?: T;
+  perguntas?:
+    | T
+    | {
+        pergunta?: T;
+        resposta?: T;
         id?: T;
       };
   updatedAt?: T;
