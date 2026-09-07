@@ -2,10 +2,19 @@ import 'dotenv/config'
 import { getPayload } from 'payload'
 import config from '../src/payload.config'
 import { runSeed, runClear } from '../src/utils/seedHelpers'
+import { exigirConfirmacao } from './confirmarAlvo'
+
+const arg = process.argv[2]
+
+// `--clear` apaga discos, vestuário, pedidos, imagens e artistas do banco que o
+// DATABASE_URI apontar — que aqui é o de produção. Confirma antes de subir o
+// Payload, para nem chegar perto do banco se a pessoa cancelar.
+if (arg === '--clear') {
+  await exigirConfirmacao('apagar discos, vestuário, pedidos, imagens, artistas e usuários não-admin')
+}
 
 // Só carregar o Payload já cria/atualiza o schema no banco (push).
 const payload = await getPayload({ config })
-const arg = process.argv[2]
 
 if (arg === '--clear') {
   const counts = await runClear(payload)

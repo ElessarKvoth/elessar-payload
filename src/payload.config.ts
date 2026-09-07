@@ -25,16 +25,56 @@ import { confirmarRetornoMercadoPago } from './endpoints/confirmarRetornoMercado
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-const ORIGENS_PERMITIDAS = [
-  ...(process.env.FRONTEND_URL ?? '')
+/** O header `Origin` nunca traz barra no fim; a env var costuma trazer. */
+const comoOrigem = (url: string): string => url.trim().replace(/\/+$/, '')
+
+/** Lê uma env var que aceita várias URLs separadas por vírgula. */
+const origensDaEnv = (valor: string | undefined): string[] =>
+  (valor ?? '')
     .split(',')
-    .map((u) => u.trim())
-    .filter(Boolean),
-  'https://elessarrecords.com.br',
-  'https://www.elessarrecords.com.br',
-  'https://elessar-front.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:3001',
+    .map(comoOrigem)
+    .filter(Boolean)
+
+/**
+ * Domínios do BACKEND — é onde o painel admin roda.
+ *
+ * Sem eles aqui o painel loga mas não salva NADA em produção, e o motivo é
+ * discreto: o Payload valida CSRF descartando o cookie de sessão quando o
+ * `Origin` não está nesta lista (`payload/dist/auth/extractJWT.js`). Como o
+ * navegador só manda `Origin` em requisições que alteram dados, o GET (abrir o
+ * painel, listar registros) passa e todo POST/PATCH/DELETE volta como não
+ * autenticado. O login também passa, porque ele CRIA o cookie em vez de
+ * depender de um — daí o sintoma "eu entro mas não consigo editar nada".
+ *
+ * No localhost isso nunca apareceu porque `http://localhost:3000` sempre esteve
+ * na lista abaixo.
+ */
+const ORIGENS_DO_PAINEL = [
+  // URL pública deste backend. É a fonte principal.
+  ...origensDaEnv(process.env.NEXT_PUBLIC_SERVER_URL),
+  // Domínio próprio do painel, quando houver (ex: admin.elessarrecords.com.br).
+  ...origensDaEnv(process.env.ADMIN_URL),
+  // Domínios que a própria Vercel injeta: o de produção e o do deploy atual
+  // (cada preview tem URL única, e sem isto nenhum preview consegue salvar).
+  ...(process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`]
+    : []),
+  ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+]
+
+const ORIGENS_PERMITIDAS = [
+  ...new Set([
+    // Storefront.
+    ...origensDaEnv(process.env.FRONTEND_URL),
+    'https://elessarrecords.com.br',
+    'https://www.elessarrecords.com.br',
+    'https://elessar-front.vercel.app',
+    // Painel admin.
+    ...ORIGENS_DO_PAINEL,
+    // Desenvolvimento.
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ]),
 ]
 
 export default buildConfig({
