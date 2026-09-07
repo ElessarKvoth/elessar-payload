@@ -311,9 +311,9 @@ export interface Artist {
   photo?: (number | null) | Media;
   bio?: string | null;
   /**
-   * Data de fundação da banda ou nascimento do artista. Usada para destacar automaticamente o artista mais próximo do aniversário na página de Artistas.
+   * O ano em que a banda se formou, ou em que o artista começou a carreira. Só o ano, quatro dígitos: 1968. Aparece na página do artista. Pode deixar vazio se não souber — é melhor vazio que errado.
    */
-  foundedAt?: string | null;
+  anoDeFormacao?: number | null;
   active?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -1023,7 +1023,7 @@ export interface ArtistsSelect<T extends boolean = true> {
   slug?: T;
   photo?: T;
   bio?: T;
-  foundedAt?: T;
+  anoDeFormacao?: T;
   active?: T;
   updatedAt?: T;
   createdAt?: T;
