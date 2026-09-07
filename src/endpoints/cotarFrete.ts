@@ -3,6 +3,13 @@ import { addDataAndFileToRequest, headersWithCors } from 'payload'
 
 import { montarPacote, type ItemPacote } from '../utils/freteCalculo'
 import { cotarSuperFrete } from '../utils/cotarSuperFrete'
+import { consumir, ipDoRequest } from '../utils/rateLimit'
+
+// Endpoint público que consome cota PAGA da SuperFrete a cada chamada. O teto
+// é folgado para o uso real (recalcular frete algumas vezes no checkout) e
+// apertado para script — 20 cotações por minuto por IP.
+const COTACOES_POR_JANELA = 20
+const JANELA_MS = 60_000
 
 // Item enviado pelo cliente no corpo da requisição.
 // `productType` é opcional e assume 'records' (retrocompatível com a Fase 1).
@@ -31,6 +38,23 @@ export const cotarFrete: Endpoint = {
   path: '/frete/cotar',
   method: 'post',
   handler: async (req) => {
+    // ── 0. Limite por IP ───────────────────────────────────────────────────
+    // Antes de qualquer trabalho: sem isto, um laço simples esgota a cota da
+    // SuperFrete e o frete para de calcular para todo mundo.
+    const limite = consumir(`frete:${ipDoRequest(req)}`, COTACOES_POR_JANELA, JANELA_MS)
+    if (!limite.permitido) {
+      return Response.json(
+        { erro: 'Muitas cotações em pouco tempo. Aguarde alguns segundos e tente de novo.' },
+        {
+          status: 429,
+          headers: headersWithCors({
+            headers: new Headers({ 'Retry-After': String(limite.esperarSegundos) }),
+            req,
+          }),
+        },
+      )
+    }
+
     await addDataAndFileToRequest(req)
     const body = (req.data ?? {}) as { cepDestino?: unknown; itens?: unknown }
 

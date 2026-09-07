@@ -58,6 +58,34 @@ export async function confirmarPagamentoMercadoPago(
   }
 
   if (payment.status === 'approved') {
+    // ── SEGURANÇA: confere o que foi de fato pago ──────────────────────────
+    // "approved" só diz que o Mercado Pago aprovou ALGUM valor — não diz que
+    // foi o valor deste pedido, nem na moeda certa. Sem esta checagem, a única
+    // coisa separando "o MP aprovou" de "pagaram o que deviam" é a confiança
+    // de que a preferência foi montada certo. Divergência nunca vira "pago":
+    // fica em aguardando_pagamento para conferência humana.
+    const pagoEmCentavos = Math.round((payment.transaction_amount ?? 0) * 100)
+    const esperadoEmCentavos = order.total ?? 0
+    const moeda = payment.currency_id ?? ''
+
+    if (moeda !== 'BRL' || pagoEmCentavos < esperadoEmCentavos) {
+      payload.logger.error(
+        `[mercadopago] DIVERGÊNCIA DE PAGAMENTO no pedido ${orderNumber}: ` +
+          `esperado ${esperadoEmCentavos} centavos (BRL), ` +
+          `recebido ${pagoEmCentavos} centavos (${moeda || 'moeda ausente'}). ` +
+          `Pagamento ${payment.id} NÃO foi aceito — pedido mantido em aguardando_pagamento.`,
+      )
+      // Registra o ID para rastreio, sem mudar o status.
+      await payload.update({
+        collection: 'orders',
+        id: order.id,
+        data: { idPagamentoMercadoPago: String(payment.id) },
+        overrideAccess: true,
+        req,
+      })
+      return { ok: false, erro: 'O valor pago não confere com o do pedido. Entre em contato com a loja.' }
+    }
+
     const atualizado = await payload.update({
       collection: 'orders',
       id: order.id,

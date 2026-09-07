@@ -10,19 +10,16 @@ import { confirmarPagamentoMercadoPago } from '../utils/confirmarPagamentoMercad
 function assinaturaValida(req: PayloadRequest, paymentId: string): boolean {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET
   if (!secret) {
-    // Em produção, sem segredo não há como provar que a notificação veio mesmo
-    // do Mercado Pago — recusa em vez de confiar. Em desenvolvimento apenas
-    // avisa, para não travar testes locais sem webhook configurado.
-    if (process.env.MERCADOPAGO_ENV === 'production') {
-      req.payload.logger.error(
-        '[mercadopago] MERCADOPAGO_WEBHOOK_SECRET ausente em produção — notificação recusada.',
-      )
-      return false
-    }
-    req.payload.logger.warn(
-      '[mercadopago] MERCADOPAGO_WEBHOOK_SECRET não configurado — assinatura não validada (modo teste).',
+    // Falha FECHADA. Antes, a exigência da assinatura dependia de
+    // `MERCADOPAGO_ENV === 'production'` — ou seja, de DUAS variáveis estarem
+    // certas. Bastava um typo, um "PRODUCTION" maiúsculo ou a var não chegar
+    // ao ambiente para o webhook passar a aceitar qualquer POST anônimo.
+    // Segredo ausente agora significa recusa, em qualquer ambiente; para
+    // testar localmente, configure o segredo de teste do painel do MP.
+    req.payload.logger.error(
+      '[mercadopago] MERCADOPAGO_WEBHOOK_SECRET não configurado — notificação recusada.',
     )
-    return true
+    return false
   }
 
   const signatureHeader = req.headers.get('x-signature') ?? ''

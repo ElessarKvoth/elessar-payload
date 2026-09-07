@@ -1,11 +1,16 @@
 import type { CollectionConfig, CollectionSlug, NumberField } from 'payload'
 import { APIError } from 'payload'
 
-import { isAdmin, isAdminOrCustomer } from '../access/isAdmin'
+import { isAdmin, isAdminOrCustomer, somenteServidor } from '../access/isAdmin'
 import { cpfValido } from '../utils/validarCpf'
 import { criarEtiquetaSuperFrete } from '../utils/criarEtiquetaSuperFrete'
 import { construirPacoteDoPedido } from '../utils/construirPacoteDoPedido'
 import { cotarSuperFrete } from '../utils/cotarSuperFrete'
+import {
+  recalcularTotalDoVestuario,
+  reservarEstoqueDisco,
+  reservarEstoqueVariante,
+} from '../utils/reservarEstoque'
 import type { Order } from '../payload-types'
 
 // Forma dos itens recebidos no create (antes da validação do Payload).
@@ -69,7 +74,10 @@ type OrderItem = {
 
 type RecordSnapshot = { stock: number; title: string; sku: string }
 
-type ApparelVariant = { size: string; color?: string | null; stock: number }
+// `id` é a PK da linha em `apparel_variants` — o adapter do Postgres
+// normaliza o array numa tabela própria. É por ele que a reserva atômica
+// de estoque encontra a variante.
+type ApparelVariant = { id?: string | null; size: string; color?: string | null; stock: number }
 type ApparelSnapshot = { title: string; sku: string; variants: ApparelVariant[] }
 
 export const Orders: CollectionConfig = {
@@ -100,8 +108,12 @@ export const Orders: CollectionConfig = {
           data.orderNumber = `ER-${Date.now()}`
         }
 
-        // Força customer = usuário logado em create (evita impersonação)
-        if (operation === 'create' && req.user && !data.customer) {
+        // Força customer = usuário logado em create (evita impersonação).
+        // O `!data.customer` que existia aqui anulava a própria intenção: só
+        // atribuía quando o cliente não mandava nada, então bastava enviar
+        // `customer: <outro id>` para lançar o pedido no nome de terceiro.
+        // Agora é incondicional, e o campo também tem access de campo.
+        if (operation === 'create' && req.user) {
           data.customer = req.user.id
         }
 
@@ -254,7 +266,20 @@ export const Orders: CollectionConfig = {
             0,
           )
           data.subtotal = subtotal
-          data.total = subtotal + (data.shipping ?? 0) - (data.discount ?? 0)
+
+          // ── SEGURANÇA: limita o desconto ────────────────────────────────
+          // A validação do campo `total` confere `total === subtotal + frete −
+          // desconto`, ou seja, checa COERÊNCIA, não legitimidade: um desconto
+          // arbitrário passa coerente e leva o total a zero ou a negativo.
+          // O desconto legítimo é aplicado no servidor (cupom, quando existir),
+          // nunca recebido pronto do cliente.
+          const desconto = data.discount ?? 0
+          if (!Number.isFinite(desconto) || desconto < 0 || desconto > subtotal) {
+            throw new APIError('Valor de desconto inválido.', 400)
+          }
+          data.discount = desconto
+
+          data.total = subtotal + (data.shipping ?? 0) - desconto
         }
 
         return data
@@ -279,24 +304,33 @@ export const Orders: CollectionConfig = {
           const productCollection = productRef.relationTo
 
           if (productCollection === 'records') {
-            // ── Disco: decrementa estoque direto ──────────────────────────
-            const record = (await req.payload.findByID({
-              collection: RECORDS_SLUG,
-              id: productId,
+            // ── Disco: reserva atômica, depois grava pelo Payload ─────────
+            // O UPDATE condicional é quem garante que dois pagamentos
+            // simultâneos não vendam o mesmo item; o `update` logo abaixo
+            // existe para os hooks de Records rodarem (é lá que o disco sem
+            // estoque é desativado).
+            const novoEstoque = await reservarEstoqueDisco(
+              req.payload,
               req,
-            })) as unknown as RecordSnapshot
+              productId,
+              item.quantity,
+            )
 
-            const newStock = record.stock - item.quantity
-            if (newStock < 0) {
+            if (novoEstoque === null) {
+              const record = (await req.payload
+                .findByID({ collection: RECORDS_SLUG, id: productId, req })
+                .catch(() => null)) as unknown as RecordSnapshot | null
               throw new Error(
-                `Estoque insuficiente para o disco "${record.title}" (SKU: ${record.sku}). ` +
-                  `Disponível: ${record.stock}, solicitado: ${item.quantity}.`,
+                `Estoque insuficiente para o disco "${record?.title ?? productId}" ` +
+                  `(SKU: ${record?.sku ?? '?'}). Disponível: ${record?.stock ?? 0}, ` +
+                  `solicitado: ${item.quantity}.`,
               )
             }
+
             await req.payload.update({
               collection: RECORDS_SLUG,
               id: productId,
-              data: { stock: newStock } as Record<string, unknown>,
+              data: { stock: novoEstoque } as Record<string, unknown>,
               req,
               context: { skipStockDecrement: true },
             })
@@ -322,26 +356,38 @@ export const Orders: CollectionConfig = {
             }
 
             const variant = apparel.variants[variantIdx]
-            const newVariantStock = variant.stock - item.quantity
 
-            if (newVariantStock < 0) {
+            // ── Reserva atômica na LINHA da variante ────────────────────
+            // O adapter guarda `variants` numa tabela própria, então dá para
+            // decrementar só a variante vendida. O código anterior reescrevia
+            // o array inteiro: duas variantes do mesmo produto vendidas ao
+            // mesmo tempo faziam uma sobrescrever o decremento da outra.
+            if (!variant.id) {
+              throw new Error(
+                `Variante sem id em "${apparel.title}" — não é possível reservar estoque com segurança.`,
+              )
+            }
+
+            const novoEstoque = await reservarEstoqueVariante(
+              req.payload,
+              req,
+              variant.id,
+              item.quantity,
+            )
+
+            if (novoEstoque === null) {
               throw new Error(
                 `Estoque insuficiente para "${apparel.title}" tam. ${item.variantSize}. ` +
                   `Disponível: ${variant.stock}, solicitado: ${item.quantity}.`,
               )
             }
 
-            const updatedVariants = apparel.variants.map((v, i) =>
-              i === variantIdx ? { ...v, stock: newVariantStock } : v,
-            )
-
-            await req.payload.update({
-              collection: APPAREL_SLUG,
-              id: productId,
-              data: { variants: updatedVariants } as Record<string, unknown>,
-              req,
-              context: { skipStockDecrement: true },
-            })
+            // Recalcula o total do produto a partir das linhas de variante.
+            // Deliberadamente NÃO usa `payload.update` com o array: o adapter
+            // grava array por DELETE + INSERT, o que apagaria as linhas e
+            // sobrescreveria o decremento que outra transação tenha feito em
+            // outra variante do mesmo produto.
+            await recalcularTotalDoVestuario(req.payload, req, productId)
           }
         }
       },
@@ -399,6 +445,7 @@ export const Orders: CollectionConfig = {
   fields: [
     {
       name: 'orderNumber',
+      access: somenteServidor,
       label: 'Número do Pedido',
       type: 'text',
       unique: true,
@@ -408,6 +455,7 @@ export const Orders: CollectionConfig = {
     },
     {
       name: 'customer',
+      access: somenteServidor,
       label: 'Cliente',
       type: 'relationship',
       relationTo: USERS_SLUG,
@@ -472,6 +520,7 @@ export const Orders: CollectionConfig = {
     },
     {
       name: 'subtotal',
+      access: somenteServidor,
       label: 'Subtotal (centavos)',
       type: 'number',
       required: true,
@@ -479,6 +528,7 @@ export const Orders: CollectionConfig = {
     },
     {
       name: 'shipping',
+      access: somenteServidor,
       label: 'Frete (centavos)',
       type: 'number',
       defaultValue: 0,
@@ -505,12 +555,14 @@ export const Orders: CollectionConfig = {
     {
       // TODO: Aplicar desconto do sistema de cupons quando implementado
       name: 'discount',
+      access: somenteServidor,
       label: 'Desconto (centavos)',
       type: 'number',
       defaultValue: 0,
     },
     {
       name: 'total',
+      access: somenteServidor,
       label: 'Total (centavos)',
       type: 'number',
       required: true,
@@ -532,6 +584,7 @@ export const Orders: CollectionConfig = {
     },
     {
       name: 'status',
+      access: somenteServidor,
       label: 'Status do Pedido',
       type: 'select',
       required: true,
@@ -541,12 +594,14 @@ export const Orders: CollectionConfig = {
     {
       // TODO: Preencher automaticamente via webhook do gateway de pagamento
       name: 'paymentMethod',
+      access: somenteServidor,
       label: 'Forma de Pagamento',
       type: 'select',
       options: PAYMENT_METHODS,
     },
     {
       name: 'paymentStatus',
+      access: somenteServidor,
       label: 'Status do Pagamento',
       type: 'select',
       defaultValue: 'unpaid',
@@ -554,12 +609,14 @@ export const Orders: CollectionConfig = {
     },
     {
       name: 'paymentId',
+      access: somenteServidor,
       label: 'ID do Pagamento (Gateway)',
       type: 'text',
       admin: { description: 'ID externo do gateway de pagamento (legado).' },
     },
     {
       name: 'idPagamentoMercadoPago',
+      access: somenteServidor,
       label: 'ID do Pagamento (Mercado Pago)',
       type: 'text',
       admin: {
@@ -606,12 +663,14 @@ export const Orders: CollectionConfig = {
     },
     {
       name: 'idEtiquetaSuperFrete',
+      access: somenteServidor,
       label: 'ID da Etiqueta (SuperFrete)',
       type: 'text',
       admin: { description: 'Preenchido automaticamente quando a etiqueta é criada.', readOnly: true },
     },
     {
       name: 'statusEtiqueta',
+      access: somenteServidor,
       label: 'Status da Etiqueta',
       type: 'select',
       options: [
@@ -623,6 +682,7 @@ export const Orders: CollectionConfig = {
     },
     {
       name: 'erroEtiqueta',
+      access: somenteServidor,
       label: 'Erro da Etiqueta',
       type: 'textarea',
       admin: {
@@ -633,12 +693,14 @@ export const Orders: CollectionConfig = {
     },
     {
       name: 'codigoRastreio',
+      access: somenteServidor,
       label: 'Código de Rastreio',
       type: 'text',
       admin: { description: 'Preenchido quando disponível.', readOnly: true },
     },
     {
       name: 'notes',
+      access: somenteServidor,
       label: 'Observações Internas',
       type: 'textarea',
       admin: { description: 'Notas internas do admin. Não visível ao cliente.' },
