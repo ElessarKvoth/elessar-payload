@@ -545,7 +545,7 @@ export interface Banner {
     | boolean
     | null;
   /**
-   * TAMANHO EXATO: 1080 x 1350 pixels (proporção 4:5). Formato JPG ou WebP, no máximo 300 KB.
+   * TAMANHO EXATO: 1080 x 1920 pixels (proporção 9:16). Formato JPG ou WebP, no máximo 400 KB.
    *
    * ZONA SEGURA: deixe texto, logo e botão dentro dos 80% do meio da arte. As bordas podem ser cortadas em telas muito largas ou muito estreitas — o que estiver na beirada some.
    *
@@ -1373,6 +1373,14 @@ export interface Homepage {
    */
   banners?: (number | Banner)[] | null;
   /**
+   * Quanto tempo cada banner fica na tela antes de passar para o próximo. O padrão é 6 segundos.
+   *
+   * Banner com texto para ler pede mais tempo: menos de 4 segundos não dá para ler uma frase e ainda reparar na imagem. Passar rápido demais também incomoda quem estava lendo. Se houver um banner só, este campo não tem efeito — ele fica parado.
+   *
+   * Mínimo 3, máximo 30 segundos.
+   */
+  tempoDoCarrossel?: number | null;
+  /**
    * Escolha até 3 discos para aparecer na seção "Destaques" da home. Arraste para reordenar.
    */
   featuredRecords?: (number | Record)[] | null;
@@ -1929,6 +1937,7 @@ export interface SegurancaDaConta {
  */
 export interface HomepageSelect<T extends boolean = true> {
   banners?: T;
+  tempoDoCarrossel?: T;
   featuredRecords?: T;
   exclusiveReleases?: T;
   bandIcons?:

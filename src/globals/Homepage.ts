@@ -26,6 +26,23 @@ export const Homepage: GlobalConfig = {
           'Selecione os banners que vão aparecer no carrossel da home, na ordem desejada. Para criar um novo banner, acesse a seção "Banners" no menu.',
       },
     },
+    {
+      name: 'tempoDoCarrossel',
+      label: 'Segundos em cada banner',
+      type: 'number',
+      defaultValue: 6,
+      min: 3,
+      max: 30,
+      admin: {
+        step: 1,
+        description:
+          'Quanto tempo cada banner fica na tela antes de passar para o próximo. O padrão é 6 segundos.\n\n' +
+          'Banner com texto para ler pede mais tempo: menos de 4 segundos não dá para ler uma frase e ' +
+          'ainda reparar na imagem. Passar rápido demais também incomoda quem estava lendo. ' +
+          'Se houver um banner só, este campo não tem efeito — ele fica parado.\n\n' +
+          'Mínimo 3, máximo 30 segundos.',
+      },
+    },
 
     // ── Destaques ──────────────────────────────────────────────────────────
     {

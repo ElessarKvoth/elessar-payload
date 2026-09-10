@@ -23,11 +23,21 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
     ALTER TABLE "banners" ADD COLUMN IF NOT EXISTS "recorte_desktop" jsonb;
     ALTER TABLE "banners" ADD COLUMN IF NOT EXISTS "recorte_mobile" jsonb;
   `)
+
+  // Tempo de troca do carrossel, em segundos, editável em "Página Inicial".
+  // Nasce NULL; o site trata nulo como os 6 segundos que já eram fixos no
+  // código, então o comportamento não muda enquanto ninguém preencher.
+  await db.execute(sql`
+    ALTER TABLE "homepage" ADD COLUMN IF NOT EXISTS "tempo_do_carrossel" numeric;
+  `)
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
     ALTER TABLE "banners" DROP COLUMN IF EXISTS "recorte_desktop";
     ALTER TABLE "banners" DROP COLUMN IF EXISTS "recorte_mobile";
+  `)
+  await db.execute(sql`
+    ALTER TABLE "homepage" DROP COLUMN IF EXISTS "tempo_do_carrossel";
   `)
 }

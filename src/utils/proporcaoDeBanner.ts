@@ -40,20 +40,26 @@ export const BANNER_DESKTOP: EspecificacaoDeArte = {
 }
 
 /**
- * Celular: 4:5.
+ * Celular: 9:16.
  *
- * É o formato retrato do Instagram. A escolha é deliberada: quem produz a arte
- * já tem gabarito, hábito e olho treinado nesse formato, então a chance de a
- * peça chegar certa na primeira é muito maior do que num formato inventado por
- * nós. Também é mais baixo que o 2:3 que estava documentado antes, o que deixa
- * a primeira fileira de discos assomar na borda inferior da tela.
+ * É o formato de Stories do Instagram — mesma lógica do 4:5 que estava aqui
+ * antes: quem produz a arte já tem gabarito e olho treinado nele, então a peça
+ * chega certa na primeira.
+ *
+ * A troca de 4:5 para 9:16 foi para o banner ocupar a PRIMEIRA TELA INTEIRA do
+ * celular. A conta: descontada a barra de navegação (80px), sobra uma área de
+ * proporção ~0,50 na maioria dos aparelhos atuais (360x720, 390x764, 412x835).
+ * Uma arte 4:5 é 0,80 — muito mais larga que isso, então para preencher a
+ * altura o site teria que jogar fora quase 40% da largura, levando junto o
+ * texto das laterais. Em 9:16 (0,5625) a diferença cai para cerca de 10%, que a
+ * zona segura absorve.
  */
 export const BANNER_MOBILE: EspecificacaoDeArte = {
   contexto: 'celular',
   largura: 1080,
-  altura: 1350,
-  proporcao: '4:5',
-  pesoMaximoKB: 300,
+  altura: 1920,
+  proporcao: '9:16',
+  pesoMaximoKB: 400,
 }
 
 /**
