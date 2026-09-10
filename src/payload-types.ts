@@ -535,6 +535,15 @@ export interface Banner {
    * Depois de escolher, clique em "Editar imagem" e posicione o PONTO DE FOCO no que não pode ser cortado — é ele que o site respeita ao ajustar a arte a cada tela.
    */
   image?: (number | null) | Media;
+  recorteDesktop?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * TAMANHO EXATO: 1080 x 1350 pixels (proporção 4:5). Formato JPG ou WebP, no máximo 300 KB.
    *
@@ -545,6 +554,15 @@ export interface Banner {
    * Deixando vazio, o site recorta a arte do computador no formato do celular, respeitando o ponto de foco. Isso resolve na maioria dos casos — mas se a arte tiver TEXTO desenhado, mande a versão de celular, senão o texto é cortado.
    */
   imageMobile?: (number | null) | Media;
+  recorteMobile?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * Preenchido sozinho quando alguma arte está fora do formato pedido. É só um aviso: o banner funciona mesmo assim, mas pode sair cortado diferente do que você desenhou.
    */
@@ -1085,7 +1103,9 @@ export interface ApparelSelect<T extends boolean = true> {
  */
 export interface BannersSelect<T extends boolean = true> {
   image?: T;
+  recorteDesktop?: T;
   imageMobile?: T;
+  recorteMobile?: T;
   avisoProporcao?: T;
   title?: T;
   subtitle?: T;

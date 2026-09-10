@@ -50,6 +50,20 @@ Após criar, vá em "Página Inicial" para escolher quais banners aparecem e em 
       },
     },
     {
+      // O recorte fica no BANNER, não na imagem: a coleção de Imagens é
+      // compartilhada (a mesma foto pode ser card de produto), e um recorte
+      // 8:3 gravado nela valeria para todos os usos.
+      //
+      // `json` de propósito, e não `group`: é uma coordenada só, lida e escrita
+      // inteira, e cabe numa coluna em vez de quatro.
+      name: 'recorteDesktop',
+      label: 'Recorte do computador',
+      type: 'json',
+      admin: {
+        components: { Field: '/components/RecorteDeBanner#RecorteDesktop' },
+      },
+    },
+    {
       name: 'imageMobile',
       label: 'Arte do celular (opcional)',
       type: 'upload',
@@ -60,6 +74,14 @@ Após criar, vá em "Página Inicial" para escolher quais banners aparecem e em 
           '\n\nDeixando vazio, o site recorta a arte do computador no formato do celular, ' +
           'respeitando o ponto de foco. Isso resolve na maioria dos casos — mas se a arte ' +
           'tiver TEXTO desenhado, mande a versão de celular, senão o texto é cortado.',
+      },
+    },
+    {
+      name: 'recorteMobile',
+      label: 'Recorte do celular',
+      type: 'json',
+      admin: {
+        components: { Field: '/components/RecorteDeBanner#RecorteMobile' },
       },
     },
     {
