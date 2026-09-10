@@ -24,6 +24,8 @@
     "db:diag": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/diagnostico-banco.ts",
     "frete:diag": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/diagnostico-frete.ts",
     "email:diag": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/diagnostico-email.ts",
+    "auth:diag": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/diagnostico-auth.ts",
+    "conteudo:migrar": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/migrar-conteudo-do-site.ts",
     "conta:diag": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/diagnostico-conta.ts",
     "conta:destravar": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/destravar-conta.ts",
     "legais:carregar": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/carregar-minutas-legais.ts",

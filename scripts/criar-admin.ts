@@ -53,6 +53,13 @@ if (existente.docs.length > 0) {
     id: existente.docs[0]!.id,
     data: { password: senha },
     overrideAccess: true,
+    // A collection recusa `password` em update comum, para o storefront não
+    // conseguir trocar senha por fora do endpoint que derruba sessão e avisa.
+    // `overrideAccess` NÃO isenta desta trava — ele dispensa access de campo,
+    // não hook de collection. Sem esta marca, o script de socorro do painel
+    // quebra justamente quando é mais necessário: quando ninguém consegue
+    // entrar para se promover.
+    context: { permitirTrocaDeSenha: true },
   })
   console.log(`\n✅ Senha do administrador redefinida: ${email}\n`)
 } else {

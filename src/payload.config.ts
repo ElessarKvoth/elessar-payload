@@ -23,6 +23,7 @@ import { PerguntasFrequentes } from './globals/PerguntasFrequentes'
 import { ConfiguracoesGerais } from './globals/ConfiguracoesGerais'
 import { Rodape } from './globals/Rodape'
 import { WhatsApp } from './globals/WhatsApp'
+import { SegurancaDaConta } from './globals/SegurancaDaConta'
 import { cotarFrete } from './endpoints/cotarFrete'
 import { criarPagamentoMercadoPago } from './endpoints/criarPagamentoMercadoPago'
 import { mercadopagoWebhook } from './endpoints/mercadopagoWebhook'
@@ -30,6 +31,7 @@ import { confirmarRetornoMercadoPago } from './endpoints/confirmarRetornoMercado
 import { verificarConta } from './endpoints/verificarConta'
 import { reenviarVerificacao } from './endpoints/reenviarVerificacao'
 import { entrar } from './endpoints/entrar'
+import { esqueciSenha, redefinirSenha, trocarSenha } from './endpoints/senha'
 import { NOME_REMETENTE, REMETENTE_PADRAO } from './utils/enviarEmail'
 
 const filename = fileURLToPath(import.meta.url)
@@ -109,6 +111,7 @@ export default buildConfig({
     PaginasLegais,
     PerguntasFrequentes,
     ConfiguracoesDeFrete,
+    SegurancaDaConta,
   ],
   endpoints: [
     cotarFrete,
@@ -118,6 +121,9 @@ export default buildConfig({
     verificarConta,
     reenviarVerificacao,
     entrar,
+    esqueciSenha,
+    redefinirSenha,
+    trocarSenha,
   ],
   editor: lexicalEditor(),
   // ── E-mail: Resend é o único transporte oficial ─────────────────────────────

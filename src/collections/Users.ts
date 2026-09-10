@@ -9,8 +9,32 @@ import { emailDeVerificacao, PRAZO_VERIFICACAO_HORAS, PRAZO_VERIFICACAO_MS } fro
 import { termosVigentes } from '../utils/termos'
 import { ipDoRequest } from '../utils/rateLimit'
 import { somenteServidor } from '../access/isAdmin'
+import { lerAcesso } from '../utils/dispositivo'
+import { enviarAvisoDeNovoAcesso } from '../utils/emailsDeSeguranca'
 
 type WithRole = { role?: 'admin' | 'client' }
+
+/** Idade mínima para ter conta. Loja vende, e venda a menor não se sustenta. */
+const IDADE_MINIMA = 18
+
+/**
+ * `true` quando a data de nascimento indica menos de 18 anos completos.
+ *
+ * Data ilegível conta como NÃO menor: quem barra texto inválido é a validação
+ * de tipo do campo, e recusar aqui por "não consegui ler" produziria a mensagem
+ * errada na tela.
+ */
+export function menorDeIdade(nascimento: string | Date): boolean {
+  const nasc = new Date(nascimento)
+  if (Number.isNaN(nasc.getTime())) return false
+
+  const hoje = new Date()
+  let idade = hoje.getFullYear() - nasc.getFullYear()
+  const mes = hoje.getMonth() - nasc.getMonth()
+  if (mes < 0 || (mes === 0 && hoje.getDate() < nasc.getDate())) idade--
+
+  return idade < IDADE_MINIMA
+}
 
 const BRAZIL_STATES = [
   { label: 'Acre (AC)', value: 'AC' },
@@ -90,6 +114,58 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
+      // ── Idade mínima ──────────────────────────────────────────────────────
+      //
+      // Mora aqui, e não no `validate` do campo, porque o `validate` de
+      // `birthDate` NÃO roda na criação: o Payload pula a validação de todo
+      // campo cujo `admin.condition` seja falso, e a condição daquele campo
+      // (`Boolean(data.id)`) é falsa em toda criação. Ver o comentário longo
+      // na definição de `birthDate`.
+      //
+      // O hook de collection não passa por essa peneira: roda sempre, em
+      // criação e em edição, venha de onde vier.
+      ({ data }) => {
+        const d = data as Record<string, unknown>
+        if (!d.birthDate) return data
+
+        if (menorDeIdade(d.birthDate as string)) {
+          throw new APIError(
+            `É necessário ter pelo menos ${IDADE_MINIMA} anos para criar uma conta.`,
+            400,
+          )
+        }
+
+        return data
+      },
+      // ── Senha só muda pelos caminhos que avisam ──────────────────────────
+      //
+      // `PATCH /api/users/:id` com `{ password }` funcionava e trocava a senha
+      // de verdade — sem derrubar as sessões antigas e sem mandar o aviso de
+      // "sua senha foi alterada". Enquanto essa porta ficasse aberta, tudo o
+      // que o endpoint `/api/conta/trocar-senha` garante era opcional: bastava
+      // não usá-lo. Foi por ela que o storefront trocou senha esse tempo todo.
+      //
+      // Os caminhos legítimos continuam passando:
+      //   • `/api/conta/trocar-senha` e `/api/conta/redefinir-senha` marcam
+      //     `permitirTrocaDeSenha` no contexto (e derrubam as sessões);
+      //   • `resetPassword` nativo grava por `db.updateOne`
+      //     (auth/operations/resetPassword.js:86), que nem chega neste hook;
+      //   • o administrador pelo painel, que é atendimento com pessoa na linha.
+      ({ data, operation, req, context }) => {
+        if (operation !== 'update') return data
+
+        const d = data as Record<string, unknown>
+        if (typeof d.password !== 'string' || d.password === '') return data
+
+        if (context?.permitirTrocaDeSenha || req.context?.permitirTrocaDeSenha) return data
+        if ((req.user as WithRole | undefined)?.role === 'admin') return data
+
+        throw new APIError(
+          'A senha não pode ser alterada por aqui. Use "esqueci minha senha" ou a troca de ' +
+            'senha dentro da sua conta, que confere a senha atual e desconecta os outros aparelhos.',
+          400,
+        )
+      },
       // ── Aceite de termos: exigência e prova ───────────────────────────────
       // A validação mora no SERVIDOR porque é aqui que ela vale. Um checkbox
       // marcado no navegador prova apenas que existia um checkbox: qualquer um
@@ -188,6 +264,123 @@ export const Users: CollectionConfig = {
         })
       },
     ],
+    afterLogin: [
+      // ── Aviso de novo acesso ─────────────────────────────────────────────
+      //
+      // Roda depois de um login BEM-SUCEDIDO. Tudo aqui é protegido por
+      // try/catch: uma falha ao avisar não pode derrubar o login em si — quem
+      // acabou de digitar a senha certa tem que entrar, mesmo que o e-mail de
+      // aviso falhe ou o banco esteja lento.
+      async ({ user, req, context }) => {
+        // Login interno de conferência de senha (troca de senha estando
+        // logado): não é acesso novo e não deve virar aviso nem linha de
+        // histórico.
+        // Login interno de conferência de senha: quem já está autenticado na
+        // requisição não está "entrando" — está provando que sabe a senha
+        // atual para poder trocá-la. Avisar aqui produziria "novo acesso à sua
+        // conta" junto com "sua senha foi alterada", dois alarmes por uma ação
+        // que a própria pessoa acabou de fazer — e o excesso de alarme treina
+        // o cliente a ignorar o aviso que existe para ser levado a sério.
+        //
+        // LIMITAÇÃO CONHECIDA: nenhuma destas três marcas impediu o aviso na
+        // troca de senha (testado) — nem o contexto da operação, nem o do
+        // `req`, nem a presença de `req.user`. O resultado é UM e-mail de
+        // "novo acesso" a mais quando o cliente troca a senha estando logado.
+        // Incomoda, não expõe nada, e precisa ser investigado.
+        if (context?.pularAvisoDeAcesso || req.context?.pularAvisoDeAcesso || req.user) return
+
+        try {
+          const config = (await req.payload.findGlobal({
+            slug: 'seguranca-da-conta',
+            depth: 0,
+            req,
+          })) as {
+            avisarNovoAcesso?: boolean | null
+            diasParaAvisarDeNovo?: number | null
+            quantosAcessosGuardar?: number | null
+          }
+
+          const acesso = lerAcesso(req)
+          const agora = new Date()
+          const conta = user as unknown as {
+            id: number | string
+            email: string
+            name?: string | null
+            dispositivosConhecidos?: Array<{ impressao?: string | null; avisadoEm?: string | null }> | null
+            acessosRecentes?: Array<Record<string, unknown>> | null
+          }
+
+          const dias = config.diasParaAvisarDeNovo ?? 30
+          const conhecidos = conta.dispositivosConhecidos ?? []
+          const jaVisto = conhecidos.find((d) => d.impressao === acesso.impressao)
+
+          // Avisa quando o aparelho é novo OU quando o último aviso naquele
+          // aparelho já passou do prazo configurado. Sem a segunda condição, um
+          // invasor que entrasse uma vez nunca mais geraria alerta.
+          const avisadoHa = jaVisto?.avisadoEm ? agora.getTime() - new Date(jaVisto.avisadoEm).getTime() : null
+          const precisaAvisar =
+            config.avisarNovoAcesso !== false &&
+            (!jaVisto || avisadoHa === null || avisadoHa > dias * 24 * 60 * 60_000)
+
+          // ── Histórico, sempre gravado ────────────────────────────────────
+          // Independe do e-mail ter saído: é o que permite ao gerente responder
+          // "de onde andaram entrando nesta conta?" numa reclamação.
+          const limite = config.quantosAcessosGuardar ?? 10
+          const historico = [
+            {
+              dataHora: agora.toISOString(),
+              dispositivo: acesso.descricao,
+              local: acesso.local ?? undefined,
+              origem: acesso.ipExibicao,
+              avisoEnviado: precisaAvisar,
+            },
+            ...(conta.acessosRecentes ?? []),
+          ].slice(0, limite)
+
+          const dispositivos = [
+            {
+              impressao: acesso.impressao,
+              descricao: acesso.descricao,
+              // Só move a data quando de fato avisou: senão o prazo nunca
+              // venceria e o segundo aviso jamais sairia.
+              avisadoEm: precisaAvisar ? agora.toISOString() : (jaVisto?.avisadoEm ?? null),
+              ultimoAcessoEm: agora.toISOString(),
+            },
+            ...conhecidos.filter((d) => d.impressao !== acesso.impressao),
+          ].slice(0, 20)
+
+          // `payload.update`, e não `db.updateOne`, porque estes campos são
+          // ARRAYS: o adapter guarda cada linha numa tabela própria com id
+          // próprio, e o caminho de baixo nível não gera esse id — a inserção
+          // falha com violação de NOT NULL na coluna `id`. Só a operação de
+          // collection monta as linhas completas.
+          await req.payload.update({
+            collection: 'users',
+            id: conta.id,
+            data: { acessosRecentes: historico, dispositivosConhecidos: dispositivos },
+            overrideAccess: true,
+            context: { pularAceiteDeTermos: true },
+            req,
+          })
+
+          if (precisaAvisar && conta.email) {
+            await enviarAvisoDeNovoAcesso({
+              payload: req.payload,
+              para: conta.email,
+              nome: conta.name,
+              quando: agora,
+              dispositivo: acesso.descricao,
+              local: acesso.local,
+              ipExibicao: acesso.ipExibicao,
+            })
+          }
+        } catch (err) {
+          req.payload.logger.error(
+            `[acesso] Falha ao registrar/avisar login: ${(err as Error).message}`,
+          )
+        }
+      },
+    ],
   },
   fields: [
     {
@@ -231,14 +424,28 @@ export const Users: CollectionConfig = {
         date: { pickerAppearance: 'dayOnly', displayFormat: 'dd/MM/yyyy' },
         condition: (data) => Boolean(data.id),
       },
+      // ATENÇÃO: este `validate` NÃO roda no cadastro, e não há como fazê-lo
+      // rodar sem tirar o `admin.condition` acima.
+      //
+      // O Payload usa a condição do painel para decidir se valida o campo:
+      //   passesCondition = field.admin.condition(data, ...)
+      //   skipValidationFromHere = skipValidation || !passesCondition
+      //   (fields/hooks/beforeChange/promise.js:37-43)
+      //
+      // Como a condição é `Boolean(data.id)` — existe para esconder o campo na
+      // tela de "criar usuário" do painel — ela é falsa em toda criação, e a
+      // validação inteira é pulada. Ou seja: a checagem de idade ficava
+      // desligada exatamente no único momento em que ela importa. Uma conta de
+      // menor de idade entrava com HTTP 201 (confirmado por `npm run auth:diag`).
+      //
+      // A idade agora é conferida no `beforeChange` da collection, que roda
+      // sempre. Este `validate` fica para as edições pelo painel, onde a conta
+      // já tem id e a condição passa.
       validate: (value: unknown) => {
         if (!value) return true
-        const birth = new Date(value as string)
-        const today = new Date()
-        let age = today.getFullYear() - birth.getFullYear()
-        const m = today.getMonth() - birth.getMonth()
-        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
-        if (age < 18) return 'É necessário ter pelo menos 18 anos para criar uma conta.'
+        if (menorDeIdade(value as string)) {
+          return 'É necessário ter pelo menos 18 anos para criar uma conta.'
+        }
         return true
       },
     },
@@ -265,8 +472,29 @@ export const Users: CollectionConfig = {
       },
     },
     {
+      // ── A trava da confirmação de e-mail ─────────────────────────────────
+      //
+      // O `access` aqui NÃO é zelo extra: sem ele o cadastro público aceitava
+      // `_verified: true` no corpo do POST e a conta nascia confirmada, sem
+      // nunca abrir o e-mail. O Payload preserva o valor recebido
+      // (`Boolean(data._verified) || false`, collections/operations/create.js:182)
+      // e o access de campo é o único ponto que descarta o que veio do cliente
+      // (fields/hooks/beforeValidate/promise.js:216).
+      //
+      // O que isso abria: pular a confirmação inteira e, junto com ela, o
+      // portão do checkout — `criarPagamentoMercadoPago` libera a compra
+      // justamente por `_verified === true`.
+      //
+      // Fechar aqui não quebra nada dos caminhos legítimos: `verifyEmail`
+      // grava por `db.updateOne` (auth/operations/verifyEmail.js:36), que não
+      // passa por access de campo, e os scripts de servidor usam
+      // `overrideAccess: true`, que também não passa.
+      //
+      // `update: false` fecha o outro lado: quem já entrou não consegue mais
+      // gravar `_verified: false` em si mesmo e se trancar para fora.
       name: '_verified',
       type: 'checkbox',
+      access: { create: () => false, update: () => false },
       admin: { hidden: true },
     },
     // ── Confirmação de e-mail: campos de controle ────────────────────────────
@@ -379,6 +607,52 @@ export const Users: CollectionConfig = {
         description:
           'OPCIONAL e separado do aceite dos termos, como manda a LGPD: consentimento de marketing não pode vir embutido no aceite obrigatório. O cliente pode ligar e desligar quando quiser.',
       },
+    },
+    // ── Histórico de acessos ────────────────────────────────────────────────
+    // Serve ao cliente ("de onde entraram na minha conta?") e ao gerente numa
+    // reclamação. Fechado para escrita: é registro, não campo editável.
+    {
+      name: 'acessosRecentes',
+      label: 'Acessos recentes',
+      type: 'array',
+      access: somenteServidor,
+      admin: {
+        readOnly: true,
+        initCollapsed: true,
+        description:
+          'Últimas entradas nesta conta, da mais recente para a mais antiga. Preenchido automaticamente a cada login. A origem aparece encurtada de propósito — o endereço completo de rede de um cliente não precisa ficar guardado à vista.',
+      },
+      fields: [
+        {
+          name: 'dataHora',
+          label: 'Quando',
+          type: 'date',
+          admin: { date: { pickerAppearance: 'dayAndTime', displayFormat: "dd/MM/yyyy 'às' HH:mm" } },
+        },
+        { name: 'dispositivo', label: 'Aparelho', type: 'text' },
+        { name: 'local', label: 'Local aproximado', type: 'text' },
+        { name: 'origem', label: 'Origem', type: 'text' },
+        { name: 'avisoEnviado', label: 'Avisamos por e-mail', type: 'checkbox' },
+      ],
+    },
+    {
+      name: 'dispositivosConhecidos',
+      label: 'Aparelhos reconhecidos',
+      type: 'array',
+      access: somenteServidor,
+      admin: {
+        readOnly: true,
+        initCollapsed: true,
+        hidden: true,
+        description:
+          'Uso interno: é o que evita mandar aviso de acesso a cada login do mesmo aparelho.',
+      },
+      fields: [
+        { name: 'impressao', type: 'text' },
+        { name: 'descricao', type: 'text' },
+        { name: 'avisadoEm', type: 'date' },
+        { name: 'ultimoAcessoEm', type: 'date' },
+      ],
     },
     {
       name: 'addresses',

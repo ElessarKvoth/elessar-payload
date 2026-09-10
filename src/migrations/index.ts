@@ -9,6 +9,7 @@ import * as migration_20260907_173225 from './20260907_173225';
 import * as migration_20260907_180747 from './20260907_180747';
 import * as migration_20260907_221118_etapa2_verificacao_email from './20260907_221118_etapa2_verificacao_email';
 import * as migration_20260907_224103_etapa5_aceite_de_termos from './20260907_224103_etapa5_aceite_de_termos';
+import * as migration_20260908_001038_etapas3e4_acessos_e_senha from './20260908_001038_etapas3e4_acessos_e_senha';
 
 export const migrations = [
   {
@@ -64,6 +65,11 @@ export const migrations = [
   {
     up: migration_20260907_224103_etapa5_aceite_de_termos.up,
     down: migration_20260907_224103_etapa5_aceite_de_termos.down,
-    name: '20260907_224103_etapa5_aceite_de_termos'
+    name: '20260907_224103_etapa5_aceite_de_termos',
+  },
+  {
+    up: migration_20260908_001038_etapas3e4_acessos_e_senha.up,
+    down: migration_20260908_001038_etapas3e4_acessos_e_senha.down,
+    name: '20260908_001038_etapas3e4_acessos_e_senha'
   },
 ];

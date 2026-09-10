@@ -3,6 +3,7 @@ import { addDataAndFileToRequest, headersWithCors } from 'payload'
 
 import { consumir, ipDoRequest } from '../utils/rateLimit'
 import { hashDoToken } from '../utils/tokens'
+import { enviarBoasVindas } from '../utils/emailsDeSeguranca'
 
 /**
  * POST /api/conta/verificar   { token }
@@ -34,6 +35,7 @@ type Estado = 'sucesso' | 'ja_verificado' | 'token_expirado' | 'token_invalido'
 interface ContaCrua {
   id: number | string
   email?: string
+  name?: string | null
   _verified?: boolean | null
   verificacaoExpiraEm?: string | null
 }
@@ -131,6 +133,16 @@ export const verificarConta: Endpoint = {
     })
 
     req.payload.logger.info(`[conta] e-mail confirmado (id ${conta.id})`)
+
+    // Boas-vindas: falhar aqui não pode transformar uma confirmação bem
+    // sucedida em erro na tela do cliente.
+    if (conta.email) {
+      await enviarBoasVindas({ payload: req.payload, para: conta.email, nome: conta.name }).catch(
+        (err) => {
+          req.payload.logger.error(`[conta] boas-vindas não enviadas: ${(err as Error).message}`)
+        },
+      )
+    }
 
     return responder('sucesso', 200, {
       mensagem: 'E-mail confirmado. Sua conta está pronta para comprar.',

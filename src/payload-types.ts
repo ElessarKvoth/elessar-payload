@@ -114,6 +114,7 @@ export interface Config {
     'paginas-legais': PaginasLegai;
     'perguntas-frequentes': PerguntasFrequente;
     'configuracoes-de-frete': ConfiguracoesDeFrete;
+    'seguranca-da-conta': SegurancaDaConta;
   };
   globalsSelect: {
     homepage: HomepageSelect<false> | HomepageSelect<true>;
@@ -124,6 +125,7 @@ export interface Config {
     'paginas-legais': PaginasLegaisSelect<false> | PaginasLegaisSelect<true>;
     'perguntas-frequentes': PerguntasFrequentesSelect<false> | PerguntasFrequentesSelect<true>;
     'configuracoes-de-frete': ConfiguracoesDeFreteSelect<false> | ConfiguracoesDeFreteSelect<true>;
+    'seguranca-da-conta': SegurancaDaContaSelect<false> | SegurancaDaContaSelect<true>;
   };
   locale: null;
   widgets: {
@@ -749,6 +751,31 @@ export interface User {
    * OPCIONAL e separado do aceite dos termos, como manda a LGPD: consentimento de marketing não pode vir embutido no aceite obrigatório. O cliente pode ligar e desligar quando quiser.
    */
   aceitouComunicacoesMarketing?: boolean | null;
+  /**
+   * Últimas entradas nesta conta, da mais recente para a mais antiga. Preenchido automaticamente a cada login. A origem aparece encurtada de propósito — o endereço completo de rede de um cliente não precisa ficar guardado à vista.
+   */
+  acessosRecentes?:
+    | {
+        dataHora?: string | null;
+        dispositivo?: string | null;
+        local?: string | null;
+        origem?: string | null;
+        avisoEnviado?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Uso interno: é o que evita mandar aviso de acesso a cada login do mesmo aparelho.
+   */
+  dispositivosConhecidos?:
+    | {
+        impressao?: string | null;
+        descricao?: string | null;
+        avisadoEm?: string | null;
+        ultimoAcessoEm?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   addresses?:
     | {
         label?: string | null;
@@ -1196,6 +1223,25 @@ export interface UsersSelect<T extends boolean = true> {
   ipDoAceite?: T;
   hashDosTermosAceitos?: T;
   aceitouComunicacoesMarketing?: T;
+  acessosRecentes?:
+    | T
+    | {
+        dataHora?: T;
+        dispositivo?: T;
+        local?: T;
+        origem?: T;
+        avisoEnviado?: T;
+        id?: T;
+      };
+  dispositivosConhecidos?:
+    | T
+    | {
+        impressao?: T;
+        descricao?: T;
+        avisadoEm?: T;
+        ultimoAcessoEm?: T;
+        id?: T;
+      };
   addresses?:
     | T
     | {
@@ -1811,6 +1857,29 @@ export interface ConfiguracoesDeFrete {
   createdAt?: string | null;
 }
 /**
+ * Controla o e-mail que avisa o cliente quando alguém entra na conta dele. Serve para a pessoa perceber rápido se outra pessoa descobriu a senha.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "seguranca-da-conta".
+ */
+export interface SegurancaDaConta {
+  id: number;
+  /**
+   * Ligado, o cliente recebe um e-mail quando a conta é acessada de um aparelho ou lugar novo. É a forma mais simples de alguém descobrir que a conta foi invadida. Desligue apenas se estiver gerando reclamação.
+   */
+  avisarNovoAcesso?: boolean | null;
+  /**
+   * O cliente NÃO recebe e-mail toda vez que entra: só quando o aparelho é novo, ou quando passou este número de dias desde o último aviso naquele aparelho. Com 30, quem entra todo dia do mesmo computador recebe no máximo um aviso por mês. Diminuir aumenta a vigilância e o número de e-mails; aumentar faz o contrário.
+   */
+  diasParaAvisarDeNovo?: number | null;
+  /**
+   * O histórico que aparece no cadastro do cliente, para você conseguir responder "de onde andaram entrando nesta conta?" quando alguém reclamar. Os mais antigos são descartados automaticamente.
+   */
+  quantosAcessosGuardar?: number | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "homepage_select".
  */
@@ -2012,6 +2081,18 @@ export interface ConfiguracoesDeFreteSelect<T extends boolean = true> {
         altura?: T;
       };
   pesoPadraoItem?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "seguranca-da-conta_select".
+ */
+export interface SegurancaDaContaSelect<T extends boolean = true> {
+  avisarNovoAcesso?: T;
+  diasParaAvisarDeNovo?: T;
+  quantosAcessosGuardar?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
