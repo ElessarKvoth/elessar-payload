@@ -512,7 +512,9 @@ export interface Category {
  *
  * ① BANNER DE DESIGN PRÓPRIO — Suba só a imagem (já com o texto desenhado nela). Deixe título e todos os outros campos em branco.
  *
- * ② BANNER COM TEXTO — Preencha título, subtítulo e link. A imagem é opcional: sem imagem o banner exibe fundo verde escuro com a logo da Elessar; com imagem ela aparece como fundo.
+ * ② BANNER COM TEXTO — Preencha título, subtítulo e link; o site escreve por cima da arte. A imagem é opcional: sem imagem o banner exibe fundo verde escuro com a logo da Elessar.
+ *
+ * TAMANHO DAS ARTES: computador 2560 x 960 px · celular 1080 x 1350 px. O detalhamento está na descrição de cada campo, e o guia completo para quem desenha é o arquivo BANNERS.md.
  *
  * Após criar, vá em "Página Inicial" para escolher quais banners aparecem e em que ordem.
  *
@@ -522,19 +524,31 @@ export interface Category {
 export interface Banner {
   id: number;
   /**
-   * Formato DEITADO, recomendado 2400 x 1200 pixels. Sem imagem = fundo verde escuro com logo.
+   * TAMANHO EXATO: 2560 x 960 pixels (proporção 8:3). Formato JPG ou WebP, no máximo 500 KB.
    *
-   * IMPORTANTE: depois de escolher, clique em "Editar imagem" e posicione o PONTO DE FOCO no que não pode ser cortado. O computador mostra a imagem deitada e o celular mostra em pé — o ponto de foco garante que o assunto apareça nos dois.
+   * ZONA SEGURA: deixe texto, logo e botão dentro dos 80% do meio da arte. As bordas podem ser cortadas em telas muito largas ou muito estreitas — o que estiver na beirada some.
    *
-   * DESIGN PRÓPRIO: se a imagem já vem com texto desenhado, deixe os campos de texto abaixo em branco e preencha também a "Imagem para celular".
+   * Se a arte sair de outro tamanho, o site ainda mostra, mas recorta sozinho e o resultado é imprevisível. Use o tamanho exato.
+   *
+   * Sem imagem, o banner exibe fundo escuro com a logo da Elessar.
+   *
+   * Depois de escolher, clique em "Editar imagem" e posicione o PONTO DE FOCO no que não pode ser cortado — é ele que o site respeita ao ajustar a arte a cada tela.
    */
   image?: (number | null) | Media;
   /**
-   * Só preencha se a imagem de cima tiver texto ou design que não pode ser cortado no celular. Formato EM PÉ, recomendado 1080 x 1620 pixels.
+   * TAMANHO EXATO: 1080 x 1350 pixels (proporção 4:5). Formato JPG ou WebP, no máximo 300 KB.
    *
-   * Deixando vazio, o site recorta a imagem do computador sozinho, respeitando o ponto de foco — que é o suficiente na maioria dos casos.
+   * ZONA SEGURA: deixe texto, logo e botão dentro dos 80% do meio da arte. As bordas podem ser cortadas em telas muito largas ou muito estreitas — o que estiver na beirada some.
+   *
+   * Se a arte sair de outro tamanho, o site ainda mostra, mas recorta sozinho e o resultado é imprevisível. Use o tamanho exato.
+   *
+   * Deixando vazio, o site recorta a arte do computador no formato do celular, respeitando o ponto de foco. Isso resolve na maioria dos casos — mas se a arte tiver TEXTO desenhado, mande a versão de celular, senão o texto é cortado.
    */
   imageMobile?: (number | null) | Media;
+  /**
+   * Preenchido sozinho quando alguma arte está fora do formato pedido. É só um aviso: o banner funciona mesmo assim, mas pode sair cortado diferente do que você desenhou.
+   */
+  avisoProporcao?: string | null;
   /**
    * Texto principal. Deixe em branco se a imagem já tiver o texto desenhado.
    */
@@ -551,10 +565,19 @@ export interface Banner {
    * Ex: "Ver Promoções", "Comprar Agora". Padrão: "Explorar".
    */
   linkLabel?: string | null;
+  /**
+   * Desmarque para tirar do ar sem apagar o banner — ele some da home e continua salvo aqui para você ligar de novo quando quiser. Melhor que apagar e ter que cadastrar tudo outra vez.
+   */
   active?: boolean | null;
-  order?: number | null;
+  /**
+   * Deixe vazio para o banner entrar no ar assim que for ligado. Preencha para deixar uma promoção pronta com antecedência — ela aparece sozinha na hora marcada.
+   */
   startsAt?: string | null;
+  /**
+   * Deixe vazio para o banner ficar até você desligar. Preencha em promoção com prazo: o banner some sozinho e você não corre o risco de anunciar oferta que já acabou.
+   */
   endsAt?: string | null;
+  order?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1063,14 +1086,15 @@ export interface ApparelSelect<T extends boolean = true> {
 export interface BannersSelect<T extends boolean = true> {
   image?: T;
   imageMobile?: T;
+  avisoProporcao?: T;
   title?: T;
   subtitle?: T;
   link?: T;
   linkLabel?: T;
   active?: T;
-  order?: T;
   startsAt?: T;
   endsAt?: T;
+  order?: T;
   updatedAt?: T;
   createdAt?: T;
 }
