@@ -25,6 +25,7 @@ import { Rodape } from './globals/Rodape'
 import { WhatsApp } from './globals/WhatsApp'
 import { SegurancaDaConta } from './globals/SegurancaDaConta'
 import { cotarFrete } from './endpoints/cotarFrete'
+import { maisVendidos } from './endpoints/maisVendidos'
 import { criarPagamentoMercadoPago } from './endpoints/criarPagamentoMercadoPago'
 import { mercadopagoWebhook } from './endpoints/mercadopagoWebhook'
 import { confirmarRetornoMercadoPago } from './endpoints/confirmarRetornoMercadoPago'
@@ -116,6 +117,7 @@ export default buildConfig({
   ],
   endpoints: [
     cotarFrete,
+    maisVendidos,
     criarPagamentoMercadoPago,
     mercadopagoWebhook,
     confirmarRetornoMercadoPago,

@@ -14,6 +14,7 @@ import * as migration_20260910_000000_recorte_de_banner from './20260910_000000_
 import * as migration_20260910_100000_tempo_do_carrossel from './20260910_100000_tempo_do_carrossel';
 import * as migration_20260910_200000_mensagem_de_reembolso from './20260910_200000_mensagem_de_reembolso';
 import * as migration_20260916_120000_banner_destino_clicavel from './20260916_120000_banner_destino_clicavel';
+import * as migration_20260916_170000_destaque_do_disco from './20260916_170000_destaque_do_disco';
 
 export const migrations = [
   {
@@ -95,5 +96,10 @@ export const migrations = [
     up: migration_20260916_120000_banner_destino_clicavel.up,
     down: migration_20260916_120000_banner_destino_clicavel.down,
     name: '20260916_120000_banner_destino_clicavel',
+  },
+  {
+    up: migration_20260916_170000_destaque_do_disco.up,
+    down: migration_20260916_170000_destaque_do_disco.down,
+    name: '20260916_170000_destaque_do_disco',
   },
 ];

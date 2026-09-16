@@ -293,6 +293,17 @@ export const Records: CollectionConfig = {
 
     // ── Destaques ──────────────────────────────────────────────────────────
     {
+      name: 'featured',
+      label: 'Destaque no catálogo',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description:
+          'Coloca o disco na prateleira "Em destaque" do catálogo. É diferente dos três discos '
+          + 'da Página Inicial, que continuam sendo escolhidos lá — aqui você pode marcar quantos quiser.',
+      },
+    },
+    {
       name: 'isRare',
       label: 'Item Raro',
       type: 'checkbox',

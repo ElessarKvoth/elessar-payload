@@ -264,6 +264,10 @@ export interface Record {
     id?: string | null;
   }[];
   /**
+   * Coloca o disco na prateleira "Em destaque" do catálogo. É diferente dos três discos da Página Inicial, que continuam sendo escolhidos lá — aqui você pode marcar quantos quiser.
+   */
+  featured?: boolean | null;
+  /**
    * Exibe o selo "RARO" no card do produto.
    */
   isRare?: boolean | null;
@@ -1057,6 +1061,7 @@ export interface RecordsSelect<T extends boolean = true> {
         altText?: T;
         id?: T;
       };
+  featured?: T;
   isRare?: T;
   active?: T;
   weight?: T;
