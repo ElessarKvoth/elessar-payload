@@ -2,6 +2,7 @@ import type { Payload, PayloadRequest } from 'payload'
 import { Payment } from 'mercadopago'
 
 import { mercadoPagoClient, paymentMethodFromTipo } from './mercadopago'
+import { alertarPagamentoSemPedidoAberto } from './emailsDePedido'
 
 export interface ResultadoConfirmacao {
   ok: boolean
@@ -47,6 +48,36 @@ export async function confirmarPagamentoMercadoPago(
 
   // Já processado (idempotente): devolve o estado atual sem reagir de novo.
   if (order.status !== 'aguardando_pagamento') {
+    // ── Exceção: dinheiro entrando em pedido que não está mais aberto ───────
+    //
+    // Recusar a promoção está certo — pedido cancelado não tem mais reserva de
+    // estoque nem compromisso de entrega. Mas ficar em silêncio, não: o cliente
+    // pode ter cancelado pelo site e depois concluído um checkout que já estava
+    // aberto (o link do Mercado Pago continua válido do lado dele). O pedido não
+    // avança e o DINHEIRO ENTRA, sem nada no painel indicando isso.
+    //
+    // Quem descobria era o cliente, reclamando de uma cobrança que a loja não
+    // sabia explicar. Agora o gerente é avisado na hora.
+    if (payment.status === 'approved') {
+      payload.logger.error(
+        `[pagamento] ALARME: pagamento ${payment.id} APROVADO para o pedido ${orderNumber}, ` +
+          `que está com status "${order.status}". O pedido NÃO foi promovido e o estoque NÃO ` +
+          'foi baixado — mas o valor provavelmente foi capturado. Conferir no Mercado Pago.',
+      )
+
+      await alertarPagamentoSemPedidoAberto({
+        payload,
+        orderNumber,
+        statusDoPedido: order.status,
+        idPagamento: String(payment.id),
+        valorPago: payment.transaction_amount ?? null,
+      }).catch((err) => {
+        payload.logger.error(
+          `[pagamento] falha ao alertar sobre pagamento órfão: ${(err as Error).message}`,
+        )
+      })
+    }
+
     return {
       ok: true,
       orderId: order.id,

@@ -32,6 +32,7 @@ import { verificarConta } from './endpoints/verificarConta'
 import { reenviarVerificacao } from './endpoints/reenviarVerificacao'
 import { entrar } from './endpoints/entrar'
 import { esqueciSenha, redefinirSenha, trocarSenha } from './endpoints/senha'
+import { cancelarPedido } from './endpoints/cancelarPedido'
 import { NOME_REMETENTE, REMETENTE_PADRAO } from './utils/enviarEmail'
 
 const filename = fileURLToPath(import.meta.url)
@@ -124,6 +125,7 @@ export default buildConfig({
     esqueciSenha,
     redefinirSenha,
     trocarSenha,
+    cancelarPedido,
   ],
   editor: lexicalEditor(),
   // ── E-mail: Resend é o único transporte oficial ─────────────────────────────

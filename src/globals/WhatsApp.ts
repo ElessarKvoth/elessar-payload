@@ -86,6 +86,25 @@ export const WhatsApp: GlobalConfig = {
       },
     },
     {
+      name: 'mensagemDeReembolso',
+      label: 'Mensagem para pedir cancelamento / reembolso',
+      type: 'textarea',
+      defaultValue:
+        'Olá! Gostaria de solicitar o cancelamento e o reembolso do pedido {{pedido}}, ' +
+        'feito em {{data}}, no valor de {{total}}.\n\nMotivo: ',
+      admin: {
+        description:
+          'Usada quando o cliente pede cancelamento de um pedido JÁ PAGO. Ele clica em ' +
+          '"Solicitar cancelamento" em Meus Pedidos e o WhatsApp abre com esta mensagem pronta, ' +
+          'endereçada a este mesmo número.\n\n' +
+          'O site troca sozinho: {{pedido}} pelo número do pedido, {{total}} pelo valor e ' +
+          '{{data}} pela data da compra. Escreva-os exatamente assim, com as duas chaves.\n\n' +
+          'Vale terminar pedindo o motivo, como no texto padrão: a resposta vem junto da ' +
+          'primeira mensagem e você não precisa perguntar depois. Pedido que ainda não foi pago ' +
+          'o próprio cliente cancela pelo site, sem passar por aqui.',
+      },
+    },
+    {
       name: 'textoDoBotao',
       label: 'Texto que aparece ao passar o mouse',
       type: 'text',
