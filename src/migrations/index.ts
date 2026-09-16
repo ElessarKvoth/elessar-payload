@@ -12,6 +12,8 @@ import * as migration_20260907_224103_etapa5_aceite_de_termos from './20260907_2
 import * as migration_20260908_001038_etapas3e4_acessos_e_senha from './20260908_001038_etapas3e4_acessos_e_senha';
 import * as migration_20260910_000000_recorte_de_banner from './20260910_000000_recorte_de_banner';
 import * as migration_20260910_100000_tempo_do_carrossel from './20260910_100000_tempo_do_carrossel';
+import * as migration_20260910_200000_mensagem_de_reembolso from './20260910_200000_mensagem_de_reembolso';
+import * as migration_20260916_120000_banner_destino_clicavel from './20260916_120000_banner_destino_clicavel';
 
 export const migrations = [
   {
@@ -83,5 +85,15 @@ export const migrations = [
     up: migration_20260910_100000_tempo_do_carrossel.up,
     down: migration_20260910_100000_tempo_do_carrossel.down,
     name: '20260910_100000_tempo_do_carrossel',
+  },
+  {
+    up: migration_20260910_200000_mensagem_de_reembolso.up,
+    down: migration_20260910_200000_mensagem_de_reembolso.down,
+    name: '20260910_200000_mensagem_de_reembolso',
+  },
+  {
+    up: migration_20260916_120000_banner_destino_clicavel.up,
+    down: migration_20260916_120000_banner_destino_clicavel.down,
+    name: '20260916_120000_banner_destino_clicavel',
   },
 ];

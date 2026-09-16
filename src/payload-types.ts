@@ -508,13 +508,15 @@ export interface Category {
   createdAt: string;
 }
 /**
- * Crie os banners do carrossel da home. Existem dois modos:
+ * Crie os banners do carrossel da home. O formulário tem três blocos, na ordem em que se monta um banner:
  *
- * ① BANNER DE DESIGN PRÓPRIO — Suba só a imagem (já com o texto desenhado nela). Deixe título e todos os outros campos em branco.
+ * ① A ARTE — a imagem. É a única parte obrigatória.
  *
- * ② BANNER COM TEXTO — Preencha título, subtítulo e link; o site escreve por cima da arte. A imagem é opcional: sem imagem o banner exibe fundo verde escuro com a logo da Elessar.
+ * ② PARA ONDE LEVA — o banner inteiro fica clicável. Escolha um disco, uma banda, uma peça de vestuário, uma página da loja ou digite um endereço.
  *
- * TAMANHO DAS ARTES: computador 2560 x 960 px · celular 1080 x 1350 px. O detalhamento está na descrição de cada campo, e o guia completo para quem desenha é o arquivo BANNERS.md.
+ * ③ TEXTO POR CIMA — só para quem NÃO tem o texto desenhado na arte. Nasce fechado; se a sua arte já vem pronta com o texto, nem abra.
+ *
+ * TAMANHO DAS ARTES: computador 2560 x 960 px · celular 1080 x 1350 px. O guia completo para quem desenha é o arquivo BANNERS.md.
  *
  * Após criar, vá em "Página Inicial" para escolher quais banners aparecem e em que ordem.
  *
@@ -568,19 +570,44 @@ export interface Banner {
    */
   avisoProporcao?: string | null;
   /**
-   * Texto principal. Deixe em branco se a imagem já tiver o texto desenhado.
+   * Escolha uma opção e o campo certo aparece logo abaixo. As opções "Página da loja" não pedem mais nada — já sabem para onde ir.
    */
-  title?: string | null;
+  tipoDeDestino:
+    | 'nada'
+    | 'disco'
+    | 'artista'
+    | 'vestuario'
+    | 'pagina_catalogo'
+    | 'pagina_raridades'
+    | 'pagina_vestuario'
+    | 'pagina_artistas'
+    | 'link';
   /**
-   * Texto secundário abaixo do título. Opcional.
+   * Comece a digitar o nome do disco. O clique abre a página dele.
    */
-  subtitle?: string | null;
+  destinoDisco?: (number | null) | Record;
   /**
-   * Caminho interno (ex: /catalogo) ou URL externa. Deixe vazio para não exibir botão.
+   * O clique abre a página do artista, com a bio e os discos dele.
+   */
+  destinoArtista?: (number | null) | Artist;
+  /**
+   * Camiseta, moletom, boné… O clique abre a página da peça.
+   */
+  destinoVestuario?: (number | null) | Apparel;
+  /**
+   * Uma página da própria loja começa com barra — ex: /como-comprar, /perguntas-frequentes. Um site de fora começa com https:// e abre em aba nova — ex: https://instagram.com/...
    */
   link?: string | null;
   /**
-   * Ex: "Ver Promoções", "Comprar Agora". Padrão: "Explorar".
+   * Texto principal, escrito pelo site por cima da arte.
+   */
+  title?: string | null;
+  /**
+   * Texto secundário abaixo do título.
+   */
+  subtitle?: string | null;
+  /**
+   * Ex: "Ver promoções", "Comprar agora". Padrão: "Explorar". O botão leva ao mesmo destino escolhido no bloco 2, e só aparece se houver título e destino.
    */
   linkLabel?: string | null;
   /**
@@ -1107,9 +1134,13 @@ export interface BannersSelect<T extends boolean = true> {
   imageMobile?: T;
   recorteMobile?: T;
   avisoProporcao?: T;
+  tipoDeDestino?: T;
+  destinoDisco?: T;
+  destinoArtista?: T;
+  destinoVestuario?: T;
+  link?: T;
   title?: T;
   subtitle?: T;
-  link?: T;
   linkLabel?: T;
   active?: T;
   startsAt?: T;
@@ -1499,6 +1530,14 @@ export interface Whatsapp {
    * Usada no lugar da mensagem acima quando a pessoa clica estando na página de um produto. Escreva {{produto}} onde quiser que o site encaixe o nome do disco ou da peça — ele troca sozinho. Assim você já abre a conversa sabendo do que se trata, em vez de perguntar "qual produto?". Se deixar vazio, vale a mensagem padrão em todo lugar.
    */
   mensagemNoProduto?: string | null;
+  /**
+   * Usada quando o cliente pede cancelamento de um pedido JÁ PAGO. Ele clica em "Solicitar cancelamento" em Meus Pedidos e o WhatsApp abre com esta mensagem pronta, endereçada a este mesmo número.
+   *
+   * O site troca sozinho: {{pedido}} pelo número do pedido, {{total}} pelo valor e {{data}} pela data da compra. Escreva-os exatamente assim, com as duas chaves.
+   *
+   * Vale terminar pedindo o motivo, como no texto padrão: a resposta vem junto da primeira mensagem e você não precisa perguntar depois. Pedido que ainda não foi pago o próprio cliente cancela pelo site, sem passar por aqui.
+   */
+  mensagemDeReembolso?: string | null;
   /**
    * Uma frase curta que aparece ao lado do botão quando o cliente passa o mouse por cima. Exemplo: "Fale conosco" ou "Tire sua dúvida".
    */
@@ -1984,6 +2023,7 @@ export interface WhatsappSelect<T extends boolean = true> {
   numero?: T;
   mensagemPadrao?: T;
   mensagemNoProduto?: T;
+  mensagemDeReembolso?: T;
   textoDoBotao?: T;
   horarioAtendimento?: T;
   updatedAt?: T;
