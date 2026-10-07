@@ -47,6 +47,12 @@ export function storefrontUrl(): string {
   return (primeira ?? 'http://localhost:3001').replace(/\/$/, '')
 }
 
+// URL do painel admin. O painel roda no BACKEND, não na loja: os avisos de
+// pedido apontavam para `${storefrontUrl()}/admin`, que dá 404 no storefront.
+export function painelUrl(): string {
+  return (process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:3000').replace(/\/$/, '') + '/admin'
+}
+
 const escapar = (s: string): string =>
   s
     .replace(/&/g, '&amp;')

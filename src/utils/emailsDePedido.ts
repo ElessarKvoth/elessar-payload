@@ -1,7 +1,7 @@
 import type { Payload } from 'payload'
 
 import { listaAdminEmails } from './adminEmails'
-import { dadosDaEmpresa, dataHoraBr, emailBase, storefrontUrl } from './emailTemplate'
+import { dadosDaEmpresa, dataHoraBr, emailBase, painelUrl } from './emailTemplate'
 import { enviarEmailTransacional } from './enviarEmail'
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ export async function avisarAdminDePedidoCancelado(args: {
       { rotulo: 'Quando', valor: dataHoraBr() },
     ],
     botaoTexto: 'Ver no painel',
-    botaoUrl: `${storefrontUrl()}/admin/collections/orders`,
+    botaoUrl: `${painelUrl()}/collections/orders`,
     rodape:
       'Este aviso existe para você não descobrir o cancelamento só ao conferir o painel. ' +
       'Nenhuma ação é necessária.',
@@ -142,6 +142,81 @@ export async function alertarPagamentoSemPedidoAberto(args: {
     payload,
     tipo: 'pagamento-sem-pedido-aberto',
     assunto: `⚠️ Pagamento sem pedido aberto (${orderNumber}) — Elessar Records`,
+    html,
+  })
+}
+
+// ── Pagamento aprovado que o sistema não conseguiu confirmar ─────────────────
+
+/**
+ * ALARME. O Mercado Pago aprovou o pagamento, o pedido estava aberto, e mesmo
+ * assim ele não pôde virar "pago". Dois motivos possíveis:
+ *
+ *  • `estoque` — um item esgotou entre o cliente fechar o pedido e pagar (o
+ *    estoque só é baixado na confirmação). Vender o que não existe não é
+ *    opção, então o pedido fica retido com o pagamento registrado.
+ *  • `valor` — o valor aprovado é menor que o total do pedido, ou veio em
+ *    outra moeda.
+ *
+ * Antes isto só ia para o log da Vercel, que ninguém lê: o cliente pagava, o
+ * pedido ficava parado e o gerente só sabia quando o cliente reclamava.
+ */
+export async function alertarPagamentoNaoConfirmado(args: {
+  payload: Payload
+  orderNumber: string
+  motivo: 'estoque' | 'valor'
+  detalhe: string
+  idPagamento: string
+  valorPago?: number | null
+}): Promise<void> {
+  const { payload, orderNumber, motivo, detalhe, idPagamento, valorPago } = args
+  const empresa = await dadosDaEmpresa(payload)
+
+  const corpo =
+    motivo === 'estoque'
+      ? [
+          `O cliente pagou o pedido <strong>${orderNumber}</strong>, mas um dos itens ` +
+            '<strong>não tinha mais estoque</strong> na hora da confirmação.',
+          'O pedido <strong>não</strong> virou "pago", nenhum item foi baixado e nenhuma ' +
+            'etiqueta foi criada. O pagamento ficou registrado no pedido, e o cliente vê ' +
+            'que a loja vai entrar em contato — o botão de pagar some para ele não pagar de novo.',
+          '<strong>O que fazer:</strong> se conseguir repor o item, ajuste o estoque e mude a ' +
+            'situação do pedido para "Pago" no painel (o estoque é baixado e a etiqueta é criada ' +
+            'na hora). Se não, devolva o valor no Mercado Pago e mude a situação para "Reembolsado".',
+        ]
+      : [
+          `Entrou um pagamento aprovado para o pedido <strong>${orderNumber}</strong>, mas ` +
+            '<strong>o valor não confere</strong> com o total do pedido.',
+          'O pedido continua em "Aguardando pagamento" e nada foi baixado do estoque. ' +
+            'Confira no Mercado Pago e fale com o cliente.',
+        ]
+
+  const html = emailBase({
+    empresa,
+    titulo:
+      motivo === 'estoque'
+        ? '⚠️ Pedido pago com item sem estoque'
+        : '⚠️ Pagamento com valor diferente do pedido',
+    corpo,
+    detalhes: [
+      { rotulo: 'Pedido', valor: orderNumber },
+      { rotulo: 'Motivo', valor: detalhe },
+      { rotulo: 'ID do pagamento', valor: idPagamento },
+      ...(typeof valorPago === 'number' ? [{ rotulo: 'Valor pago', valor: reais(valorPago * 100) }] : []),
+      { rotulo: 'Quando', valor: dataHoraBr() },
+    ],
+    botaoTexto: 'Ver no painel',
+    botaoUrl: `${painelUrl()}/collections/orders`,
+    rodape: 'O detalhe também ficou anotado em "Observações Internas" do pedido.',
+  })
+
+  await avisarAdministradores({
+    payload,
+    tipo: motivo === 'estoque' ? 'pedido-pago-sem-estoque' : 'pagamento-com-valor-divergente',
+    assunto:
+      motivo === 'estoque'
+        ? `⚠️ Pedido ${orderNumber} pago, mas item sem estoque — Elessar Records`
+        : `⚠️ Pagamento com valor divergente (${orderNumber}) — Elessar Records`,
     html,
   })
 }

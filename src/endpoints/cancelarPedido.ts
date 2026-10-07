@@ -44,6 +44,7 @@ interface PedidoCru {
   id: number | string
   orderNumber?: string
   status?: string
+  paymentStatus?: string | null
   customer?: number | string | { id: number | string }
   total?: number
   createdAt?: string
@@ -133,7 +134,10 @@ export const cancelarPedido: Endpoint = {
       })
     }
 
-    if (pedido.status !== 'aguardando_pagamento') {
+    // `paymentStatus: paid` com status em aguardando é pedido RETIDO: o cliente
+    // pagou, mas um item esgotou antes da confirmação. Há dinheiro a devolver,
+    // então não é cancelamento de botão.
+    if (pedido.status !== 'aguardando_pagamento' || pedido.paymentStatus === 'paid') {
       return responder('precisa_falar_com_a_loja', 409, {
         mensagem:
           'Este pedido já foi pago e não pode ser cancelado pelo site. ' +

@@ -7,6 +7,7 @@ import { criarEtiquetaSuperFrete } from '../utils/criarEtiquetaSuperFrete'
 import { construirPacoteDoPedido } from '../utils/construirPacoteDoPedido'
 import { cotarSuperFrete } from '../utils/cotarSuperFrete'
 import {
+  ItemIndisponivelError,
   recalcularTotalDoVestuario,
   reservarEstoqueDisco,
   reservarEstoqueVariante,
@@ -23,6 +24,8 @@ type ItemPedidoEntrada = {
   variantSize?: string | null
   variantColor?: string | null
   unitPrice?: number
+  productTitle?: string
+  productSku?: string
 }
 
 const idDoValue = (v: number | string | { id: number | string } | undefined): number | string =>
@@ -156,7 +159,9 @@ export const Orders: CollectionConfig = {
             const relacao = item.product?.relationTo
             const produtoId = idDoValue(item.product?.value)
             const qtd = item.quantity ?? 0
-            if (!relacao || produtoId == null || qtd < 1) {
+            // Inteira: 1,5 disco passava (só havia `qtd < 1`), gerava subtotal
+            // em fração de centavo e o Mercado Pago recusava a preferência.
+            if (!relacao || produtoId == null || !Number.isInteger(qtd) || qtd < 1) {
               throw new APIError('Item do pedido inválido.', 400)
             }
 
@@ -178,6 +183,11 @@ export const Orders: CollectionConfig = {
               const precoReais =
                 apparel.salePrice != null && apparel.salePrice < apparel.price ? apparel.salePrice : apparel.price
               item.unitPrice = Math.round(precoReais * 100)
+              // Nome e SKU também saem do banco. Vinham do carrinho do cliente e
+              // iam assim para o checkout do Mercado Pago e para a declaração de
+              // conteúdo da etiqueta.
+              item.productTitle = apparel.title
+              item.productSku = apparel.sku
             } else {
               const rec = await req.payload
                 .findByID({ collection: RECORDS_SLUG, id: produtoId, depth: 0, req })
@@ -192,12 +202,29 @@ export const Orders: CollectionConfig = {
               const precoReais =
                 record.salePrice != null && record.salePrice < record.price ? record.salePrice : record.price
               item.unitPrice = Math.round(precoReais * 100)
+              item.productTitle = record.title
+              item.productSku = record.sku
             }
           }
         }
 
         // O frete escolhido define o valor do frete (centavos) usado no total
         const frete = data.freteEscolhido as { preco?: number; servicoId?: number | null } | undefined
+
+        // ── SEGURANÇA: cliente precisa escolher um serviço de frete ──────────
+        // A revalidação na SuperFrete (logo abaixo) só roda com `servicoId`.
+        // Sem esta trava, bastava mandar `servicoId: null` com `preco: 0` para
+        // o servidor aceitar frete zero. Toda opção da cotação traz o id, então
+        // nenhuma compra legítima chega aqui sem ele. Admin fica de fora: pode
+        // lançar pedido de balcão pelo painel.
+        if (
+          operation === 'create' &&
+          !context?.skipValidacaoFrete &&
+          (req.user as { role?: string } | null)?.role !== 'admin' &&
+          !(typeof frete?.servicoId === 'number' && Number.isFinite(frete.servicoId))
+        ) {
+          throw new APIError('Escolha uma opção de frete antes de finalizar.', 400)
+        }
         if (frete && typeof frete.preco === 'number') {
           data.shipping = frete.preco
         }
@@ -322,7 +349,7 @@ export const Orders: CollectionConfig = {
               const record = (await req.payload
                 .findByID({ collection: RECORDS_SLUG, id: productId, req })
                 .catch(() => null)) as unknown as RecordSnapshot | null
-              throw new Error(
+              throw new ItemIndisponivelError(
                 `Estoque insuficiente para o disco "${record?.title ?? productId}" ` +
                   `(SKU: ${record?.sku ?? '?'}). Disponível: ${record?.stock ?? 0}, ` +
                   `solicitado: ${item.quantity}.`,
@@ -351,7 +378,7 @@ export const Orders: CollectionConfig = {
             )
 
             if (variantIdx === -1) {
-              throw new Error(
+              throw new ItemIndisponivelError(
                 `Variante "${item.variantSize}${item.variantColor ? `/${item.variantColor}` : ''}" ` +
                   `não encontrada em "${apparel.title}" (SKU: ${apparel.sku}).`,
               )
@@ -365,7 +392,7 @@ export const Orders: CollectionConfig = {
             // o array inteiro: duas variantes do mesmo produto vendidas ao
             // mesmo tempo faziam uma sobrescrever o decremento da outra.
             if (!variant.id) {
-              throw new Error(
+              throw new ItemIndisponivelError(
                 `Variante sem id em "${apparel.title}" — não é possível reservar estoque com segurança.`,
               )
             }
@@ -378,7 +405,7 @@ export const Orders: CollectionConfig = {
             )
 
             if (novoEstoque === null) {
-              throw new Error(
+              throw new ItemIndisponivelError(
                 `Estoque insuficiente para "${apparel.title}" tam. ${item.variantSize}. ` +
                   `Disponível: ${variant.stock}, solicitado: ${item.quantity}.`,
               )

@@ -28,8 +28,24 @@ import type { Payload, PayloadRequest } from 'payload'
 
 type Executor = { execute: (query: unknown) => Promise<unknown> }
 
+/**
+ * Item do pedido que não pode mais ser entregue: sem saldo, ou a variante
+ * sumiu do produto. Lançado pelo hook de `Orders` na hora de virar "pago".
+ *
+ * Tem classe própria para a confirmação de pagamento distinguir "o item
+ * acabou" (o cliente pagou e precisa de atendimento humano — retém o pedido e
+ * avisa o gerente) de uma falha passageira de banco (deixa estourar, e o
+ * Mercado Pago reenvia o webhook mais tarde).
+ */
+export class ItemIndisponivelError extends Error {
+  constructor(mensagem: string) {
+    super(mensagem)
+    this.name = 'ItemIndisponivelError'
+  }
+}
+
 /** Drizzle ligado à transação corrente; cai para o global se não houver. */
-function executorDaTransacao(payload: Payload, req: PayloadRequest): Executor {
+export function executorDaTransacao(payload: Payload, req: PayloadRequest): Executor {
   const db = payload.db as unknown as {
     drizzle?: Executor
     sessions?: Record<string, { db?: Executor } | undefined>

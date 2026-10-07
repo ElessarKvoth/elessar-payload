@@ -35,6 +35,9 @@ export const confirmarRetornoMercadoPago: Endpoint = {
     return resp({
       ok: true,
       status: resultado.status,
+      // `paid` com status em aguardando = pagamento retido (item esgotou). O
+      // site usa isto para não oferecer "pagar" de novo.
+      paymentStatus: resultado.paymentStatus ?? null,
       statusEtiqueta: resultado.statusEtiqueta ?? null,
       erroEtiqueta: resultado.erroEtiqueta ?? null,
     })

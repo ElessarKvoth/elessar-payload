@@ -53,6 +53,15 @@ export const criarPagamentoMercadoPago: Endpoint = {
       return resp({ erro: 'Este pedido não está mais aguardando pagamento.' }, 409)
     }
 
+    // Pagamento já registrado, pedido retido (um item esgotou antes da
+    // confirmação). Um segundo link aqui seria cobrar o cliente duas vezes.
+    if (order.paymentStatus === 'paid') {
+      return resp(
+        { erro: 'O pagamento deste pedido já foi recebido. A loja vai entrar em contato com você.' },
+        409,
+      )
+    }
+
     const dest = order.destinatario
     const shipping = order.shipping ?? 0
     const itensPreference = order.items.map((item, idx) => ({
