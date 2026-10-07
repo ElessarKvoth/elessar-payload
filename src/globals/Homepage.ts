@@ -66,10 +66,11 @@ export const Homepage: GlobalConfig = {
       type: 'relationship',
       relationTo: 'records' as CollectionSlug,
       hasMany: true,
-      maxRows: 4,
+      // Sem maxRows: o gerente escolhe quantos discos quiser. O site mostra
+      // todos em grade de 4 por fileira (2 no celular).
       admin: {
         description:
-          'Escolha até 4 discos para a seção "Lançamentos Exclusivos" da home. Arraste para reordenar. Se ficar vazio, a seção não aparece.',
+          'Escolha quantos discos quiser para a seção "Lançamentos Exclusivos" da home. Arraste para reordenar — a ordem aqui é a ordem no site. Disco que esgotar some da vitrine sozinho e volta quando o estoque for reposto. Se ficar vazio, a seção não aparece.',
         allowCreate: false,
       },
     },
