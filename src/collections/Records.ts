@@ -3,6 +3,13 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 
 import { isAdmin } from '../access/isAdmin'
 import { generateSlug } from '../utils/generateSlug'
+import {
+  ETIQUETA_NENHUMA,
+  PREFIXO_SITUACAO,
+  PREFIXO_TEXTO,
+  SITUACOES_DO_DISCO,
+  TAMANHO_MAXIMO_DA_ETIQUETA,
+} from './situacoesDoDisco'
 
 // CollectionSlug cast required until `payload generate:types` is run with all collections registered.
 const ARTISTS_SLUG = 'artists' as CollectionSlug
@@ -28,16 +35,7 @@ const VINYL_MODELS = [
   { label: 'Outro', value: 'other' },
 ]
 
-const SITUATIONS = [
-  { label: 'Raro', value: 'rare' },
-  { label: 'Importado', value: 'imported' },
-  { label: 'Lacrado', value: 'sealed' },
-  { label: 'Colecionável', value: 'collectible' },
-  { label: 'Edição Limitada', value: 'limited_edition' },
-  { label: 'Edição de Aniversário', value: 'anniversary_edition' },
-  { label: 'Remasterizado', value: 'remastered' },
-  { label: 'Colorido', value: 'colored_vinyl' },
-]
+const SITUATIONS = [...SITUACOES_DO_DISCO]
 
 export const Records: CollectionConfig = {
   slug: 'records',
@@ -71,6 +69,38 @@ export const Records: CollectionConfig = {
       },
     ],
     beforeChange: [
+      // ── Etiquetas: limpa as digitadas e confere a escolhida para o card ──
+      // Roda só quando a gravação traz esses campos (o painel manda o disco
+      // inteiro; a baixa de estoque de um pedido manda só `stock`).
+      async ({ data, originalDoc }) => {
+        if (Array.isArray(data.etiquetas)) {
+          data.etiquetas = [
+            ...new Set(
+              (data.etiquetas as unknown[])
+                .map((t) => String(t ?? '').trim().replace(/\s+/g, ' ').slice(0, TAMANHO_MAXIMO_DA_ETIQUETA))
+                .filter(Boolean),
+            ),
+          ]
+        }
+
+        // Se a etiqueta escolhida para o card deixou de existir no disco (o
+        // gerente desmarcou a situação ou apagou a etiqueta), volta para o
+        // automático em vez de mostrar no card algo que a página não mostra.
+        const escolha = data.etiquetaDoCard
+        if (typeof escolha === 'string' && escolha !== '' && escolha !== ETIQUETA_NENHUMA) {
+          const situacoes = (data.situation ?? originalDoc?.situation ?? []) as string[]
+          const raro = Boolean(data.isRare ?? originalDoc?.isRare)
+          const etiquetas = (data.etiquetas ?? originalDoc?.etiquetas ?? []) as string[]
+          const valida = escolha.startsWith(PREFIXO_SITUACAO)
+            ? (() => {
+                const v = escolha.slice(PREFIXO_SITUACAO.length)
+                return situacoes.includes(v) || (v === 'rare' && raro)
+              })()
+            : escolha.startsWith(PREFIXO_TEXTO) && etiquetas.includes(escolha.slice(PREFIXO_TEXTO.length))
+          if (!valida) data.etiquetaDoCard = null
+        }
+        return data
+      },
       async ({ data }) => {
         if (data.stock === 0) {
           console.warn(`[Inventory] Estoque zerado para disco SKU "${data.sku ?? 'desconhecido'}", desativando.`)
@@ -199,6 +229,28 @@ export const Records: CollectionConfig = {
       hasMany: true,
       options: SITUATIONS,
       admin: { description: 'Pode selecionar mais de uma. Ex: Raro + Importado.' },
+    },
+    {
+      // Texto livre com vários valores: no painel vira um campo de "chips" —
+      // digita, aperta Enter, e a etiqueta entra. Fica em `records_texts`
+      // (migration 20261008_120000_etiquetas_do_disco).
+      name: 'etiquetas',
+      label: 'Etiquetas personalizadas',
+      type: 'text',
+      hasMany: true,
+      admin: {
+        description:
+          `Escreva uma etiqueta e aperte Enter. Ex: "Gatefold branco", "Capa dura", "Encarte com letras". ` +
+          `Até ${TAMANHO_MAXIMO_DA_ETIQUETA} letras cada. Todas aparecem na página do produto, junto com a Situação.`,
+      },
+    },
+    {
+      name: 'etiquetaDoCard',
+      label: 'Etiqueta no card da loja',
+      type: 'text',
+      admin: {
+        components: { Field: '/components/EtiquetaDoCard#EtiquetaDoCard' },
+      },
     },
     {
       name: 'artist',

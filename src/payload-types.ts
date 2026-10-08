@@ -222,6 +222,11 @@ export interface Record {
         | 'colored_vinyl'
       )[]
     | null;
+  /**
+   * Escreva uma etiqueta e aperte Enter. Ex: "Gatefold branco", "Capa dura", "Encarte com letras". Até 30 letras cada. Todas aparecem na página do produto, junto com a Situação.
+   */
+  etiquetas?: string[] | null;
+  etiquetaDoCard?: string | null;
   artist: number | Artist;
   genre?: (number | null) | Genre;
   /**
@@ -1042,6 +1047,8 @@ export interface RecordsSelect<T extends boolean = true> {
   vinylModelCustom?: T;
   condition?: T;
   situation?: T;
+  etiquetas?: T;
+  etiquetaDoCard?: T;
   artist?: T;
   genre?: T;
   releaseYear?: T;
