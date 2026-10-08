@@ -130,7 +130,7 @@ export async function enviarBoasVindas(args: {
       'Seu e-mail foi confirmado e sua conta está liberada para comprar.',
       'A partir de agora você acompanha seus pedidos, salva endereços de entrega e recebe o código de rastreio assim que o disco for postado.',
     ],
-    botaoTexto: 'Ver o catálogo',
+    botaoTexto: 'Ver os produtos',
     botaoUrl: `${storefrontUrl()}/catalogo`,
     rodape: 'Bom garimpo.',
   })

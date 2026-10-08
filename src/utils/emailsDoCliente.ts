@@ -183,7 +183,7 @@ export function montarEmailDoCliente(
                 '**Nada foi cobrado.** Se ainda tiver aberta a página de pagamento do Mercado Pago, não conclua.',
               ],
           totais: totaisDoPedido(p),
-          botaoTexto: 'Ver o catálogo',
+          botaoTexto: 'Ver os produtos',
           botaoUrl: `${loja}/catalogo`,
         }),
       }

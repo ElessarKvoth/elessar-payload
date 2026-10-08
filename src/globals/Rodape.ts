@@ -25,7 +25,7 @@ export const Rodape: GlobalConfig = {
       admin: {
         initCollapsed: true,
         description:
-          'Cada lista vira uma coluna do rodapé, lado a lado. O normal são duas ou três: uma com as partes da loja ("Catálogo", "Vestuário") e outra com informação ("Sobre a Loja", "Trocas e Devoluções"). No celular elas viram uma embaixo da outra. Arraste para trocar a ordem.',
+          'Cada lista vira uma coluna do rodapé, lado a lado. O normal são duas ou três: uma com as partes da loja ("Produtos", "Lançamentos Exclusivos") e outra com informação ("Sobre a Loja", "Trocas e Devoluções"). No celular elas viram uma embaixo da outra. Arraste para trocar a ordem.',
       },
       fields: [
         {
