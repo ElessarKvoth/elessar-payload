@@ -133,7 +133,9 @@ export async function reservarEstoqueVariante(
  * aqui também. Aceitei a duplicação porque a alternativa é uma escrita
  * incorreta sob concorrência.
  *
- * Nunca reativa um produto desativado à mão — só desativa quando zera.
+ * Nunca reativa nada — só desativa quando zera. A reativação na reposição
+ * mora em `Apparel.beforeChange`, porque repor é coisa do painel, e aqui só
+ * passa venda (estoque que diminui).
  */
 export async function recalcularTotalDoVestuario(
   payload: Payload,

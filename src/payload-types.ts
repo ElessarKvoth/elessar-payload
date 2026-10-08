@@ -277,7 +277,7 @@ export interface Record {
    */
   isRare?: boolean | null;
   /**
-   * Desmarque para ocultar o produto da loja sem excluir. Desativado automaticamente quando estoque chega a zero.
+   * Desmarque para ocultar o produto da loja sem excluir. Quando o estoque chega a zero, o disco sai do site sozinho; quando você repõe o estoque, ele volta sozinho.
    */
   active?: boolean | null;
   /**
@@ -480,7 +480,7 @@ export interface Apparel {
    */
   isRare?: boolean | null;
   /**
-   * Desativado automaticamente quando o estoque total chega a zero.
+   * Quando o estoque total chega a zero, a peça sai do site sozinha; quando você repõe o estoque, ela volta sozinha. Desmarque para ocultar a peça sem excluir.
    */
   active?: boolean | null;
   /**

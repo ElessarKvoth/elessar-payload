@@ -101,10 +101,27 @@ export const Records: CollectionConfig = {
         }
         return data
       },
-      async ({ data }) => {
+      async ({ data, originalDoc, operation }) => {
         if (data.stock === 0) {
           console.warn(`[Inventory] Estoque zerado para disco SKU "${data.sku ?? 'desconhecido'}", desativando.`)
           data.active = false
+        } else if (
+          // ── Reposição: o disco esgotado volta sozinho ───────────────────
+          // Zerar o estoque desativa o disco (acima), mas não havia o caminho
+          // de volta: o gerente repunha o estoque e o disco continuava fora do
+          // site até alguém lembrar de marcar "Ativo" à mão.
+          //
+          // Só quando o estoque SAI DO ZERO nesta gravação: um disco escondido
+          // à mão com estoque não é afetado, e a baixa de um pedido (que só
+          // diminui) nunca reativa nada.
+          operation === 'update' &&
+          typeof data.stock === 'number' &&
+          data.stock > 0 &&
+          (originalDoc?.stock ?? 0) <= 0 &&
+          originalDoc?.active === false
+        ) {
+          console.info(`[Inventory] Estoque reposto para disco SKU "${data.sku ?? originalDoc?.sku ?? 'desconhecido'}", reativando.`)
+          data.active = true
         }
         return data
       },
@@ -370,7 +387,9 @@ export const Records: CollectionConfig = {
       type: 'checkbox',
       defaultValue: true,
       admin: {
-        description: 'Desmarque para ocultar o produto da loja sem excluir. Desativado automaticamente quando estoque chega a zero.',
+        description:
+          'Desmarque para ocultar o produto da loja sem excluir. ' +
+          'Quando o estoque chega a zero, o disco sai do site sozinho; quando você repõe o estoque, ele volta sozinho.',
       },
     },
 

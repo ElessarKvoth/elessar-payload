@@ -76,7 +76,7 @@ export const Apparel: CollectionConfig = {
       },
     ],
     beforeChange: [
-      async ({ data }) => {
+      async ({ data, originalDoc, operation }) => {
         // Recalculate totalStock from all variants
         if (Array.isArray(data.variants)) {
           const total = (data.variants as ApparelVariant[]).reduce(
@@ -90,6 +90,16 @@ export const Apparel: CollectionConfig = {
               `[Inventory] Todas as variantes sem estoque para "${data.sku ?? 'desconhecido'}", desativando.`,
             )
             data.active = false
+          } else if (
+            // Reposição: a peça esgotada volta sozinha quando alguma variante
+            // ganha estoque. Mesma regra dos discos (Records.ts) — só quando o
+            // total SAI DO ZERO, então peça escondida à mão não é afetada.
+            operation === 'update' &&
+            (originalDoc?.totalStock ?? 0) <= 0 &&
+            originalDoc?.active === false
+          ) {
+            console.info(`[Inventory] Estoque reposto para "${data.sku ?? originalDoc?.sku ?? 'desconhecido'}", reativando.`)
+            data.active = true
           }
         }
         return data
@@ -318,7 +328,9 @@ export const Apparel: CollectionConfig = {
       type: 'checkbox',
       defaultValue: true,
       admin: {
-        description: 'Desativado automaticamente quando o estoque total chega a zero.',
+        description:
+          'Quando o estoque total chega a zero, a peça sai do site sozinha; quando você repõe o estoque, ela volta sozinha. ' +
+          'Desmarque para ocultar a peça sem excluir.',
       },
     },
 
