@@ -710,7 +710,7 @@ export interface Order {
    */
   paymentId?: string | null;
   /**
-   * Preenchido automaticamente quando o pagamento for integrado (fase futura).
+   * Preenchido automaticamente quando o Mercado Pago confirma o pagamento.
    */
   idPagamentoMercadoPago?: string | null;
   /**
@@ -757,7 +757,7 @@ export interface Order {
    */
   erroEtiqueta?: string | null;
   /**
-   * Preenchido quando disponível.
+   * Preencha ao postar o pacote. O cliente recebe este código por e-mail quando a situação mudar para "Enviado".
    */
   codigoRastreio?: string | null;
   /**
@@ -1421,7 +1421,7 @@ export interface Homepage {
    */
   featuredRecords?: (number | Record)[] | null;
   /**
-   * Escolha até 4 discos para a seção "Lançamentos Exclusivos" da home. Arraste para reordenar. Se ficar vazio, a seção não aparece.
+   * Escolha quantos discos quiser para a seção "Lançamentos Exclusivos" da home. Arraste para reordenar — a ordem aqui é a ordem no site. Disco que esgotar some da vitrine sozinho e volta quando o estoque for reposto. Se ficar vazio, a seção não aparece.
    */
   exclusiveReleases?: (number | Record)[] | null;
   /**

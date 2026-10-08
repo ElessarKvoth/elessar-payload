@@ -143,3 +143,40 @@ export async function enviarBoasVindas(args: {
     html,
   })
 }
+
+// ── Conta bloqueada por tentativas ───────────────────────────────────────────
+
+/**
+ * A conta foi travada por senha errada repetida (o Payload bloqueia por 10
+ * minutos depois de 5 erros). Antes isso só aparecia na tela de quem tentava
+ * entrar — se não era o dono, o dono nunca sabia que alguém estava tentando.
+ *
+ * Quem chama limita a um aviso por conta a cada janela de bloqueio: durante o
+ * bloqueio cada nova tentativa também é recusada, e cada uma geraria um e-mail.
+ */
+export async function enviarAvisoDeContaTravada(args: { payload: Payload; para: string }): Promise<void> {
+  const { payload, para } = args
+  const empresa = await dadosDaEmpresa(payload)
+
+  const html = emailBase({
+    empresa,
+    titulo: 'Conta bloqueada por segurança',
+    corpo: [
+      'Houve várias tentativas de entrar na sua conta com a senha errada, e ela foi **bloqueada por 10 minutos**.',
+      'Se foi você, é só esperar e tentar de novo — ou criar uma senha nova no botão abaixo. ' +
+        'Se **não** foi você, troque a senha: isso desconecta todos os aparelhos.',
+    ],
+    detalhes: [{ rotulo: 'Quando', valor: dataHoraBr() }],
+    botaoTexto: 'Criar uma senha nova',
+    botaoUrl: linkTrocarSenha(),
+    rodape: 'Nunca pedimos sua senha por e-mail ou mensagem.',
+  })
+
+  await enviarEmailTransacional({
+    payload,
+    tipo: 'conta-travada',
+    para,
+    assunto: 'Sua conta foi bloqueada por tentativas de senha — Elessar Records',
+    html,
+  })
+}

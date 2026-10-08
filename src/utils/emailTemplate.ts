@@ -15,16 +15,40 @@ import type { Payload } from 'payload'
    não tem o que fazer — a peça chega igual nos dois temas.
    ──────────────────────────────────────────────────────────────────────────── */
 
+export interface ItemDoEmail {
+  titulo: string
+  /** Linhas menores sob o título (artista, formato, SKU…). */
+  linhas?: string[]
+  quantidade: number
+  /** Valor já formatado (ex: "R$ 210,90"). */
+  valor: string
+  /** URL pública da foto (capa do disco). */
+  imagem?: string | null
+}
+
+export interface SecaoDoEmail {
+  titulo: string
+  linhas: Array<{ rotulo: string; valor: string }>
+}
+
 export interface EmailBaseArgs {
   titulo: string
   saudacao?: string
-  /** Parágrafos do corpo. Cada item vira um <p>. */
+  /** Parágrafos do corpo. Cada item vira um <p>. Aceita **negrito**. */
   corpo: string | string[]
+  /** Caixa de atenção logo após o corpo (ex: etiqueta com erro). Aceita **negrito**. */
+  aviso?: string
+  /** Tabela de itens do pedido, com foto opcional. */
+  itens?: ItemDoEmail[]
+  /** Linhas de valores sob os itens (subtotal, frete, total). */
+  totais?: Array<{ rotulo: string; valor: string; forte?: boolean }>
+  /** Grupos de informação com título (Entrega, Pagamento, Cliente…). */
+  secoes?: SecaoDoEmail[]
   botaoTexto?: string
   botaoUrl?: string
   /** Linhas de detalhe (data, dispositivo, local) exibidas em bloco destacado. */
   detalhes?: Array<{ rotulo: string; valor: string }>
-  /** Aviso final dentro do cartão (ex: "se não foi você…"). */
+  /** Aviso final dentro do cartão (ex: "se não foi você…"). Aceita **negrito**. */
   rodape?: string
   /** Identificação da empresa no pé do e-mail. */
   empresa?: DadosDaEmpresa
@@ -59,6 +83,19 @@ const escapar = (s: string): string =>
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+
+/**
+ * Escapa e só DEPOIS converte `**texto**` em negrito. Os avisos de pedido
+ * escreviam `<strong>` direto no corpo, que é escapado — e o gerente lia as
+ * tags como texto. Assim o negrito existe sem abrir brecha para HTML vindo de
+ * dado de cliente (nome, observação), que continua escapado.
+ */
+const formatar = (s: string): string =>
+  escapar(s).replace(/\*\*(.+?)\*\*/g, `<strong style="color:#e8e0d0;">$1</strong>`)
+
+/** R$ a partir de centavos, no formato brasileiro. */
+export const reais = (centavos: number): string =>
+  (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 // ── Dados da empresa, lidos do painel ────────────────────────────────────────
 // Nome, CNPJ e endereço no rodapé não são enfeite: identificam o remetente,
@@ -103,7 +140,9 @@ const COR = {
   fundo: '#0c0a08',
   cartao: '#14110d',
   borda: '#2a241b',
-  destaque: '#c9a227',
+  // Verde musgo da marca — o mesmo `accent` do site. O dourado anterior não
+  // era cor da Elessar.
+  destaque: '#93a559',
   titulo: '#e8e0d0',
   texto: '#a89e88',
   textoForte: '#c9bfa8',
@@ -131,6 +170,68 @@ function blocoDetalhes(detalhes: NonNullable<EmailBaseArgs['detalhes']>): string
             </table>`
 }
 
+function blocoAviso(texto: string): string {
+  return `
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px 0;">
+              <tr>
+                <td style="padding:14px 16px;border:1px solid #8a6a1f;background-color:#221b0c;font-size:13px;line-height:1.6;color:#e0c27a;">${formatar(texto)}</td>
+              </tr>
+            </table>`
+}
+
+function blocoItens(itens: ItemDoEmail[], totais?: EmailBaseArgs['totais']): string {
+  const linhas = itens
+    .map((it) => {
+      const foto = it.imagem
+        ? `<img src="${escapar(it.imagem)}" width="56" height="56" alt="" style="display:block;width:56px;height:56px;object-fit:cover;border:1px solid ${COR.borda};" />`
+        : `<div style="width:56px;height:56px;background-color:${COR.borda};"></div>`
+      const extras = (it.linhas ?? [])
+        .filter(Boolean)
+        .map((l) => `<div style="font-size:12px;line-height:1.5;color:${COR.apagado};">${escapar(l)}</div>`)
+        .join('')
+      return `
+              <tr>
+                <td width="68" valign="top" style="padding:12px 12px 12px 0;border-bottom:1px solid ${COR.borda};">${foto}</td>
+                <td valign="top" style="padding:12px 0;border-bottom:1px solid ${COR.borda};">
+                  <div style="font-size:14px;line-height:1.4;font-weight:bold;color:${COR.titulo};">${escapar(it.titulo)}</div>
+                  ${extras}
+                </td>
+                <td valign="top" align="right" style="padding:12px 0 12px 12px;border-bottom:1px solid ${COR.borda};white-space:nowrap;">
+                  <div style="font-size:13px;color:${COR.textoForte};">${escapar(it.valor)}</div>
+                  <div style="font-size:12px;color:${COR.apagado};">qtd. ${it.quantidade}</div>
+                </td>
+              </tr>`
+    })
+    .join('')
+
+  const valores = (totais ?? [])
+    .map(
+      (t) => `
+              <tr>
+                <td colspan="2" align="right" style="padding:${t.forte ? '10px' : '4px'} 12px 0 0;font-size:${t.forte ? '14px' : '12px'};color:${t.forte ? COR.titulo : COR.apagado};${t.forte ? 'font-weight:bold;' : ''}">${escapar(t.rotulo)}</td>
+                <td align="right" style="padding:${t.forte ? '10px' : '4px'} 0 0 0;font-size:${t.forte ? '15px' : '13px'};color:${t.forte ? COR.titulo : COR.textoForte};white-space:nowrap;${t.forte ? 'font-weight:bold;' : ''}">${escapar(t.valor)}</td>
+              </tr>`,
+    )
+    .join('')
+
+  return `
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 28px 0;border-top:1px solid ${COR.borda};">
+              ${linhas}
+              ${valores}
+            </table>`
+}
+
+function blocoSecoes(secoes: SecaoDoEmail[]): string {
+  return secoes
+    .filter((s) => s.linhas.length > 0)
+    .map(
+      (s) => `
+            <p style="margin:0 0 8px 0;font-size:10px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:${COR.destaque};">${escapar(s.titulo)}</p>
+            ${blocoDetalhes(s.linhas)}`,
+    )
+    .join('')
+}
+
 function pePagina(empresa?: DadosDaEmpresa): string {
   const nome = empresa?.nome ?? 'Elessar Records'
   const identificacao = [empresa?.razaoSocial, empresa?.cnpj ? `CNPJ ${empresa.cnpj}` : null]
@@ -151,6 +252,10 @@ export function emailBase({
   titulo,
   saudacao,
   corpo,
+  aviso,
+  itens,
+  totais,
+  secoes,
   botaoTexto,
   botaoUrl,
   detalhes,
@@ -160,7 +265,7 @@ export function emailBase({
   const paragrafos = (Array.isArray(corpo) ? corpo : [corpo])
     .map(
       (p) =>
-        `<p style="margin:0 0 16px 0;font-size:14px;line-height:1.7;color:${COR.texto};">${escapar(p)}</p>`,
+        `<p style="margin:0 0 16px 0;font-size:14px;line-height:1.7;color:${COR.texto};">${formatar(p)}</p>`,
     )
     .join('')
 
@@ -214,6 +319,9 @@ export function emailBase({
                     : ''
                 }
                 ${paragrafos}
+                ${aviso ? blocoAviso(aviso) : ''}
+                ${itens && itens.length > 0 ? blocoItens(itens, totais) : ''}
+                ${secoes && secoes.length > 0 ? blocoSecoes(secoes) : ''}
                 ${detalhes && detalhes.length > 0 ? blocoDetalhes(detalhes) : ''}
                 ${botao}
               </td>
@@ -224,7 +332,7 @@ export function emailBase({
               <td style="padding:0 36px 32px 36px;">
                 <div style="border-top:1px solid ${COR.borda};">
                   <p style="margin:20px 0 0 0;font-size:12px;line-height:1.6;color:${COR.rodape};">
-                    ${escapar(rodape)}
+                    ${formatar(rodape)}
                   </p>
                 </div>
               </td>

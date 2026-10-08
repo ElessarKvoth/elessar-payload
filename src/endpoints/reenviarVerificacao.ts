@@ -3,6 +3,7 @@ import { addDataAndFileToRequest, headersWithCors } from 'payload'
 
 import { consumir, ipDoRequest } from '../utils/rateLimit'
 import { enviarEmailTransacional } from '../utils/enviarEmail'
+import { dadosDaEmpresa } from '../utils/emailTemplate'
 import { emailDeVerificacao, PRAZO_VERIFICACAO_MS } from '../utils/emailVerificacao'
 import { gerarToken } from '../utils/tokens'
 
@@ -126,7 +127,12 @@ export const reenviarVerificacao: Endpoint = {
       returning: false,
     })
 
-    const { assunto, html } = emailDeVerificacao({ nome: conta.name, token, reenvio: true })
+    const { assunto, html } = emailDeVerificacao({
+      nome: conta.name,
+      token,
+      reenvio: true,
+      empresa: await dadosDaEmpresa(req.payload),
+    })
 
     // Falha de e-mail NÃO derruba a resposta: o token já está gravado e o
     // cliente pode pedir de novo. O log é que registra o problema.

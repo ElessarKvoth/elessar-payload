@@ -142,12 +142,15 @@ export default buildConfig({
   //
   // EMAIL_REDIRECT_TO (opcional, só em dev): manda TODO e-mail para um único
   // endereço, para testar o fluxo real sem risco de escrever para cliente.
+  // Em produção é IGNORADO: se a variável escapasse para a Vercel, toda
+  // confirmação de conta, link de senha e e-mail de pedido iria para uma caixa
+  // só — os clientes não receberiam nada e um terceiro receberia tudo.
   email: process.env.RESEND_API_KEY
     ? resendAdapter({
         defaultFromAddress: process.env.EMAIL_FROM || REMETENTE_PADRAO,
         defaultFromName: NOME_REMETENTE,
         apiKey: process.env.RESEND_API_KEY,
-        ...(process.env.EMAIL_REDIRECT_TO
+        ...(process.env.EMAIL_REDIRECT_TO && process.env.NODE_ENV !== 'production'
           ? { overrideRecipientAddress: process.env.EMAIL_REDIRECT_TO }
           : {}),
       })
@@ -167,10 +170,33 @@ export default buildConfig({
     }
 
     if (process.env.EMAIL_REDIRECT_TO) {
-      payload.logger.warn(
-        `[email] EMAIL_REDIRECT_TO ativo: TODO e-mail vai para ${process.env.EMAIL_REDIRECT_TO}, ` +
-          'ignorando o destinatário real. Isso NUNCA deve estar ligado em produção.',
-      )
+      if (process.env.NODE_ENV === 'production') {
+        payload.logger.error(
+          '[email] EMAIL_REDIRECT_TO está definida em produção e foi IGNORADA. ' +
+            'Remova a variável da Vercel.',
+        )
+      } else {
+        payload.logger.warn(
+          `[email] EMAIL_REDIRECT_TO ativo: TODO e-mail vai para ${process.env.EMAIL_REDIRECT_TO}, ` +
+            'ignorando o destinatário real.',
+        )
+      }
+    }
+
+    // Pagamento e frete caem no modo de TESTE quando a variável não é
+    // exatamente "production" — um typo bastaria para a loja vender em
+    // sandbox (pagamento de teste marcando pedido real como pago). Na
+    // produção da Vercel, grita na subida em vez de descobrir na primeira venda.
+    if (process.env.VERCEL_ENV === 'production') {
+      const problemas: string[] = []
+      if (process.env.MERCADOPAGO_ENV !== 'production') problemas.push('MERCADOPAGO_ENV ≠ "production"')
+      if (process.env.SUPERFRETE_ENV !== 'production') problemas.push('SUPERFRETE_ENV ≠ "production"')
+      if (process.env.MERCADOPAGO_ACCESS_TOKEN?.startsWith('TEST-')) {
+        problemas.push('MERCADOPAGO_ACCESS_TOKEN é credencial de teste (TEST-)')
+      }
+      if (problemas.length > 0) {
+        payload.logger.error(`[config] PRODUÇÃO EM MODO DE TESTE: ${problemas.join('; ')}.`)
+      }
     }
 
     // Chave de e-mail em variável NEXT_PUBLIC_* vaza para o bundle do navegador,

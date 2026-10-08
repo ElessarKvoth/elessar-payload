@@ -4,6 +4,7 @@ import { addDataAndFileToRequest, headersWithCors } from 'payload'
 import { consumir, ipDoRequest } from '../utils/rateLimit'
 import { hashDoToken } from '../utils/tokens'
 import { enviarBoasVindas } from '../utils/emailsDeSeguranca'
+import { avisarAdminDeNovoCliente } from '../utils/emailsDePedido'
 
 /**
  * POST /api/conta/verificar   { token }
@@ -36,6 +37,7 @@ interface ContaCrua {
   id: number | string
   email?: string
   name?: string | null
+  phone?: string | null
   _verified?: boolean | null
   verificacaoExpiraEm?: string | null
 }
@@ -142,6 +144,16 @@ export const verificarConta: Endpoint = {
           req.payload.logger.error(`[conta] boas-vindas não enviadas: ${(err as Error).message}`)
         },
       )
+      // Aviso ao gerente só aqui, na confirmação — e não no cadastro: conta que
+      // nunca confirma o e-mail não é cliente, e avisaria até cadastro de robô.
+      await avisarAdminDeNovoCliente({
+        payload: req.payload,
+        nome: conta.name,
+        email: conta.email,
+        telefone: conta.phone,
+      }).catch((err) => {
+        req.payload.logger.error(`[conta] aviso de novo cliente não enviado: ${(err as Error).message}`)
+      })
     }
 
     return responder('sucesso', 200, {

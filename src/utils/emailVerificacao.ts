@@ -1,4 +1,4 @@
-import { emailBase, storefrontUrl } from './emailTemplate'
+import { emailBase, storefrontUrl, type DadosDaEmpresa } from './emailTemplate'
 
 /**
  * Assunto e corpo do e-mail de confirmação de conta, em um lugar só.
@@ -36,9 +36,11 @@ export interface ArgsEmailVerificacao {
   token: string
   /** `true` quando é reenvio pedido pelo cliente, não o e-mail do cadastro. */
   reenvio?: boolean
+  /** Nome, CNPJ e endereço no rodapé. */
+  empresa?: DadosDaEmpresa
 }
 
-export function emailDeVerificacao({ nome, token, reenvio }: ArgsEmailVerificacao): {
+export function emailDeVerificacao({ nome, token, reenvio, empresa }: ArgsEmailVerificacao): {
   assunto: string
   html: string
 } {
@@ -49,6 +51,7 @@ export function emailDeVerificacao({ nome, token, reenvio }: ArgsEmailVerificaca
       ? 'Seu novo link de confirmação — Elessar Records'
       : 'Confirme sua conta — Elessar Records',
     html: emailBase({
+      empresa,
       titulo: reenvio ? 'Novo link de confirmação' : 'Bem-vindo à Elessar Records',
       saudacao: saudacao === 'Olá,' ? undefined : saudacao,
       corpo: reenvio

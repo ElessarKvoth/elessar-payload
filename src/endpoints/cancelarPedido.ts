@@ -2,7 +2,6 @@ import type { Endpoint, PayloadRequest } from 'payload'
 import { addDataAndFileToRequest, headersWithCors } from 'payload'
 
 import { consumir, ipDoRequest } from '../utils/rateLimit'
-import { avisarAdminDePedidoCancelado } from '../utils/emailsDePedido'
 
 /**
  * POST /api/pedidos/cancelar   { orderNumber }   (autenticado)
@@ -158,19 +157,8 @@ export const cancelarPedido: Endpoint = {
       `[pedido] ${orderNumber} cancelado pelo próprio cliente (usuário ${req.user.id}).`,
     )
 
-    // Aviso ao gerente. Falhar aqui NÃO desfaz o cancelamento: o pedido já está
-    // cancelado e o cliente não pode ficar preso a ele porque um e-mail caiu.
-    await avisarAdminDePedidoCancelado({
-      payload: req.payload,
-      orderNumber,
-      total: pedido.total ?? 0,
-      emailDoCliente: (req.user as { email?: string }).email ?? '—',
-      nomeDoCliente: (req.user as { name?: string | null }).name ?? null,
-    }).catch((err) => {
-      req.payload.logger.error(
-        `[pedido] aviso de cancelamento não enviado (${orderNumber}): ${(err as Error).message}`,
-      )
-    })
+    // Os e-mails (confirmação ao cliente e aviso ao gerente) saem do hook de
+    // Orders (hooks/avisarPorEmailDoPedido.ts), depois desta resposta.
 
     return responder('sucesso', 200, {
       mensagem: 'Pedido cancelado.',

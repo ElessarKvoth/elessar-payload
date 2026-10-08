@@ -3,7 +3,7 @@ import { APIError } from 'payload'
 
 import { isAdmin, isAdminOrSelf } from '../access/isAdmin'
 import { cpfValido } from '../utils/validarCpf'
-import { emailBase, storefrontUrl } from '../utils/emailTemplate'
+import { dadosDaEmpresa, emailBase, storefrontUrl } from '../utils/emailTemplate'
 import { emailEhAdmin, listaAdminEmails } from '../utils/adminEmails'
 import { emailDeVerificacao, PRAZO_VERIFICACAO_HORAS, PRAZO_VERIFICACAO_MS } from '../utils/emailVerificacao'
 import { termosVigentes } from '../utils/termos'
@@ -86,19 +86,25 @@ export const Users: CollectionConfig = {
     verify: {
       generateEmailSubject: ({ user }) =>
         emailDeVerificacao({ nome: (user as { name?: string }).name, token: '' }).assunto,
-      generateEmailHTML: ({ token, user }) =>
-        emailDeVerificacao({ nome: (user as { name?: string }).name, token: token ?? '' }).html,
+      generateEmailHTML: async ({ token, user, req }) =>
+        emailDeVerificacao({
+          nome: (user as { name?: string }).name,
+          token: token ?? '',
+          empresa: await dadosDaEmpresa(req.payload),
+        }).html,
     },
     forgotPassword: {
       generateEmailSubject: () => 'Redefinir sua senha — Elessar Records',
-      generateEmailHTML: (args) =>
+      // Async para o rodapé levar nome, CNPJ e endereço da loja, como os demais.
+      generateEmailHTML: async (args) =>
         emailBase({
+          empresa: args?.req ? await dadosDaEmpresa(args.req.payload) : undefined,
           titulo: 'Redefinir senha',
           saudacao: `Olá, ${(args?.user as { name?: string } | undefined)?.name ?? ''}`.trim(),
           corpo:
             'Recebemos um pedido para redefinir a senha da sua conta. O link abaixo é válido por tempo limitado.',
           botaoTexto: 'Criar nova senha',
-          botaoUrl: `${storefrontUrl()}/redefinir-senha?token=${args?.token ?? ''}`,
+          botaoUrl: `${storefrontUrl()}/redefinir-senha?token=${encodeURIComponent(args?.token ?? '')}`,
           rodape:
             'Se você não pediu para redefinir a senha, ignore este e-mail — sua senha atual continua valendo.',
         }),

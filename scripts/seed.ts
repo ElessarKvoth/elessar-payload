@@ -23,8 +23,8 @@ if (arg === '--clear') {
   // Banco pronto e VAZIO: só as tabelas, nenhum dado fictício.
   // Use quando a loja vai ser cadastrada do zero pelo dono.
   console.log('\n✅ Schema criado. Banco vazio, sem dados de exemplo.')
-  console.log('   Próximo passo: suba o admin (npm run dev) e acesse /admin —')
-  console.log('   o primeiro usuário criado vira administrador automaticamente.\n')
+  console.log('   Próximo passo: crie a conta do administrador com `npm run admin:create`.')
+  console.log('   Quem é admin é decidido pela variável ADMIN_EMAILS, não pela ordem de cadastro.\n')
 } else {
   const counts = await runSeed(payload)
   console.log('\n✅ Seed concluído:', counts, '\n')

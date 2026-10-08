@@ -3,6 +3,7 @@ import { APIError } from 'payload'
 
 import { isAdmin, isAdminOrCustomer, isVerificadoOuAdmin, somenteServidor } from '../access/isAdmin'
 import { cpfValido } from '../utils/validarCpf'
+import { avisarPorEmailDoPedido } from '../hooks/avisarPorEmailDoPedido'
 import { criarEtiquetaSuperFrete } from '../utils/criarEtiquetaSuperFrete'
 import { construirPacoteDoPedido } from '../utils/construirPacoteDoPedido'
 import { cotarSuperFrete } from '../utils/cotarSuperFrete'
@@ -31,22 +32,12 @@ type ItemPedidoEntrada = {
 const idDoValue = (v: number | string | { id: number | string } | undefined): number | string =>
   typeof v === 'object' && v !== null ? v.id : (v as number | string)
 
-// TODO: Integrar gateway de pagamento (Mercado Pago) — guardar ID em idPagamentoMercadoPago.
 // TODO: Implementar sistema de cupons — validar código e aplicar desconto aqui.
 
 // CollectionSlug casts required until `payload generate:types` is run with all collections registered.
 const RECORDS_SLUG = 'records' as CollectionSlug
 const APPAREL_SLUG = 'apparel' as CollectionSlug
 const USERS_SLUG = 'users' as CollectionSlug
-
-// ── FRETE DE TESTE (TEMPORÁRIO — REMOVER APÓS O TESTE DE COMPRA) ─────────────
-// Até esta data, QUALQUER conta pode fechar pedido sem serviço de frete, com o
-// frete forçado a zero. Existe só para testar o pagamento de ponta a ponta antes
-// de divulgar o site. Tem validade para se desligar sozinho caso a remoção seja
-// esquecida — passado o prazo, volta a valer a trava normal (abaixo).
-// O storefront tem a mesma data em app/carrinho/page.tsx.
-// Para remover: apague esta constante e o bloco que a usa no beforeValidate.
-const FRETE_DE_TESTE_VALE_ATE = Date.parse('2026-10-11T23:59:59-03:00')
 
 const ORDER_STATUSES = [
   { label: 'Aguardando pagamento', value: 'aguardando_pagamento' },
@@ -114,7 +105,7 @@ export const Orders: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [
-      async ({ data, req, operation, context }) => {
+      async ({ data, req, operation }) => {
         if (!data) return data
 
         // Gera número do pedido automaticamente
@@ -219,46 +210,43 @@ export const Orders: CollectionConfig = {
 
         // O frete escolhido define o valor do frete (centavos) usado no total
         const frete = data.freteEscolhido as { preco?: number; servicoId?: number | null } | undefined
+        // Admin pode lançar pedido de balcão pelo painel, sem serviço de frete e
+        // sem depender da SuperFrete. Todo o resto passa pelas travas abaixo.
+        const ehAdmin = (req.user as { role?: string } | null)?.role === 'admin'
 
         // ── SEGURANÇA: cliente precisa escolher um serviço de frete ──────────
         // A revalidação na SuperFrete (logo abaixo) só roda com `servicoId`.
         // Sem esta trava, bastava mandar `servicoId: null` com `preco: 0` para
         // o servidor aceitar frete zero. Toda opção da cotação traz o id, então
-        // nenhuma compra legítima chega aqui sem ele. Admin fica de fora: pode
-        // lançar pedido de balcão pelo painel.
+        // nenhuma compra legítima chega aqui sem ele.
         if (
           operation === 'create' &&
-          !context?.skipValidacaoFrete &&
-          (req.user as { role?: string } | null)?.role !== 'admin' &&
+          !ehAdmin &&
           !(typeof frete?.servicoId === 'number' && Number.isFinite(frete.servicoId))
         ) {
-          if (Date.now() > FRETE_DE_TESTE_VALE_ATE) {
-            throw new APIError('Escolha uma opção de frete antes de finalizar.', 400)
-          }
-          // FRETE DE TESTE (temporário): aceito, mas o valor é sempre zero —
-          // nunca o que o cliente mandou. Sem serviço, a etiqueta não é criada.
-          if (frete) frete.preco = 0
-          data.shipping = 0
+          throw new APIError('Escolha uma opção de frete antes de finalizar.', 400)
         }
         if (frete && typeof frete.preco === 'number') {
           data.shipping = frete.preco
         }
 
         // ── SEGURANÇA: revalida o preço do frete na SuperFrete (create) ───────
-        // Recalcula o pacote e cota de novo no servidor; se a cotação responder,
-        // o preço do serviço escolhido SOBRESCREVE o valor enviado pelo cliente.
-        // Se a SuperFrete estiver fora, mantém o valor do cliente (checkout não
-        // trava por indisponibilidade externa) e registra alerta no log.
-        // O seed pula esta etapa via context.skipValidacaoFrete.
-        if (
-          operation === 'create' &&
-          !context?.skipValidacaoFrete &&
-          frete?.servicoId != null &&
-          Array.isArray(data.items) &&
-          process.env.SUPERFRETE_TOKEN
-        ) {
+        // Recalcula o pacote e cota de novo no servidor; o preço do serviço
+        // escolhido SOBRESCREVE o valor enviado pelo cliente.
+        //
+        // Falha FECHADA para cliente: sem token ou com a cotação fora do ar, o
+        // pedido é recusado. Antes o valor enviado pelo cliente era aceito nesses
+        // casos — quem chamasse a API direto podia mandar frete zero quando a
+        // SuperFrete caísse. Não custa disponibilidade: o checkout já depende da
+        // mesma cotação para mostrar as opções.
+        if (operation === 'create' && frete?.servicoId != null && Array.isArray(data.items)) {
+          const freteIndisponivel = 'Não conseguimos confirmar o frete agora. Tente de novo em instantes.'
           const destCep = String((data.destinatario as { cep?: string } | undefined)?.cep ?? '').replace(/\D/g, '')
-          if (destCep.length === 8) {
+
+          if (!process.env.SUPERFRETE_TOKEN) {
+            req.payload.logger.error('[pedido] SUPERFRETE_TOKEN ausente — frete não pode ser revalidado.')
+            if (!ehAdmin) throw new APIError(freteIndisponivel, 503)
+          } else if (destCep.length === 8) {
             const config = await req.payload.findGlobal({ slug: 'configuracoes-de-frete' })
             const caixa = {
               comprimento: config.caixaPadrao?.comprimento ?? 33,
@@ -288,15 +276,15 @@ export const Orders: CollectionConfig = {
               ;(data.freteEscolhido as { preco?: number }).preco = precoServidor
               data.shipping = precoServidor
             } else {
-              req.payload.logger.warn(`[pedido] Frete não revalidado (${cotacao.erro}); usando valor enviado.`)
+              req.payload.logger.warn(`[pedido] Frete não revalidado (${cotacao.erro}).`)
+              if (!ehAdmin) throw new APIError(freteIndisponivel, 503)
             }
           }
         }
 
-        // ── SEGURANÇA: valida faixa do frete quando não foi possível revalidar ──
-        // (servicoId nulo, SUPERFRETE_TOKEN ausente ou cotação fora do ar). Sem
-        // isso, um cliente malicioso poderia mandar `preco` negativo para abater
-        // o total do pedido.
+        // ── SEGURANÇA: valida a faixa do frete ───────────────────────────────
+        // Rede de segurança para o pedido de balcão do admin, que não passa pela
+        // revalidação: frete negativo abateria o total do pedido.
         if (operation === 'create' && typeof data.shipping === 'number') {
           if (!Number.isFinite(data.shipping) || data.shipping < 0) {
             throw new APIError('Valor de frete inválido.', 400)
@@ -437,7 +425,7 @@ export const Orders: CollectionConfig = {
       },
       // ── Cria a etiqueta na SuperFrete quando o pedido vira "pago" ──────────
       // O gatilho é a MUDANÇA DE STATUS para "pago" (não o botão de checkout).
-      // Assim, quando o Mercado Pago for integrado, basta marcar como "pago".
+      // Vale para a confirmação do Mercado Pago e para o admin marcando "Pago" no painel.
       async ({ doc, previousDoc, req, operation, context }) => {
         if (context.skipEtiqueta) return
 
@@ -484,6 +472,10 @@ export const Orders: CollectionConfig = {
           })
         }
       },
+      // ── E-mails ao cliente e ao gerente — SEMPRE o último hook ────────────
+      // Se a baixa de estoque falhar, os hooks seguintes não rodam: nenhum
+      // e-mail de "pagamento confirmado" sai para uma venda desfeita.
+      avisarPorEmailDoPedido,
     ],
   },
   fields: [
@@ -636,7 +628,7 @@ export const Orders: CollectionConfig = {
       options: ORDER_STATUSES,
     },
     {
-      // TODO: Preencher automaticamente via webhook do gateway de pagamento
+      // Preenchido na confirmação do Mercado Pago (utils/confirmarPagamentoMercadoPago.ts).
       name: 'paymentMethod',
       access: somenteServidor,
       label: 'Forma de Pagamento',
@@ -664,7 +656,7 @@ export const Orders: CollectionConfig = {
       label: 'ID do Pagamento (Mercado Pago)',
       type: 'text',
       admin: {
-        description: 'Preenchido automaticamente quando o pagamento for integrado (fase futura).',
+        description: 'Preenchido automaticamente quando o Mercado Pago confirma o pagamento.',
         readOnly: true,
       },
     },
@@ -740,7 +732,13 @@ export const Orders: CollectionConfig = {
       access: somenteServidor,
       label: 'Código de Rastreio',
       type: 'text',
-      admin: { description: 'Preenchido quando disponível.', readOnly: true },
+      // Editável no painel: a etiqueta é paga e impressa à mão na SuperFrete, e
+      // é o gerente quem tem o código em mãos ao postar. Antes era readOnly e
+      // nada o preenchia — o cliente nunca recebia rastreio.
+      admin: {
+        description:
+          'Preencha ao postar o pacote. O cliente recebe este código por e-mail quando a situação mudar para "Enviado".',
+      },
     },
     {
       name: 'notes',

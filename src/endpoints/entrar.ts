@@ -2,6 +2,7 @@ import type { Endpoint, PayloadRequest } from 'payload'
 import { addDataAndFileToRequest, headersWithCors, LockedAuth, UnverifiedEmail } from 'payload'
 
 import { consumir, ipDoRequest } from '../utils/rateLimit'
+import { enviarAvisoDeContaTravada } from '../utils/emailsDeSeguranca'
 import { precisaAceitarNovosTermos, termosVigentes } from '../utils/termos'
 
 /**
@@ -114,6 +115,14 @@ export const entrar: Endpoint = {
       }
 
       if (err instanceof LockedAuth) {
+        // Avisa o dono da conta uma vez por bloqueio (10 min). Só existe
+        // bloqueio em conta real, então isto não revela quem é cliente: a
+        // resposta abaixo é a mesma com ou sem e-mail.
+        if (consumir(`aviso-travada:${email}`, 1, 10 * 60_000).permitido) {
+          await enviarAvisoDeContaTravada({ payload: req.payload, para: email }).catch((e) => {
+            req.payload.logger.error(`[conta] aviso de bloqueio não enviado: ${(e as Error).message}`)
+          })
+        }
         return responder('conta_travada', 423, {
           mensagem:
             'Sua conta está temporariamente bloqueada por tentativas de senha erradas. ' +
