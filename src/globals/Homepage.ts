@@ -6,7 +6,7 @@ export const Homepage: GlobalConfig = {
   label: 'Página Inicial',
   admin: {
     group: 'Site',
-    description: 'Tudo que aparece na página inicial da loja. Banners do carrossel e discos em destaque.',
+    description: 'Tudo que aparece na página inicial da loja, na mesma ordem do site: banners, Chegou Agora, destaques, lançamentos e bandas.',
     hideAPIURL: true,
   },
   access: {
@@ -41,6 +41,29 @@ export const Homepage: GlobalConfig = {
           'ainda reparar na imagem. Passar rápido demais também incomoda quem estava lendo. ' +
           'Se houver um banner só, este campo não tem efeito — ele fica parado.\n\n' +
           'Mínimo 3, máximo 30 segundos.',
+      },
+    },
+
+    // ── Chegou Agora ───────────────────────────────────────────────────────
+    // Antes a faixa se montava sozinha com os discos cadastrados por último —
+    // ou seja, a ordem era a ordem em que o gerente digitava o acervo, não a
+    // que ele queria mostrar. Agora ele escolhe e arrasta, como nos banners.
+    // Vazio = volta ao automático, para a faixa nunca sumir da home.
+    // Sem migration: a lista mora em `homepage_rels` (coluna `records_id`, que
+    // já existe), diferenciada só pelo `path`.
+    {
+      name: 'chegouAgora',
+      label: '🆕 Chegou Agora',
+      type: 'relationship',
+      relationTo: 'records' as CollectionSlug,
+      hasMany: true,
+      admin: {
+        description:
+          'Escolha os discos da faixa "Chegou Agora" e arraste para pôr na ordem em que devem passar — igual aos banners. ' +
+          'Vale para a home e para a prateleira "Chegou agora" de Produtos. ' +
+          'Se ficar vazio, a faixa mostra sozinha os discos cadastrados mais recentemente. ' +
+          'Disco que esgotar some da faixa sozinho e volta quando o estoque for reposto.',
+        allowCreate: false,
       },
     },
 
@@ -102,16 +125,6 @@ export const Homepage: GlobalConfig = {
           admin: { description: 'Para onde o clique leva (catálogo filtrado por este artista).' },
         },
       ],
-    },
-
-    // ── Chegou Agora ───────────────────────────────────────────────────────
-    {
-      name: 'newArrivalsNote',
-      label: '🆕 Chegou Agora',
-      type: 'ui',
-      admin: {
-        components: {},
-      },
     },
   ],
 }

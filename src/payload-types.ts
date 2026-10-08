@@ -1397,7 +1397,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
- * Tudo que aparece na página inicial da loja. Banners do carrossel e discos em destaque.
+ * Tudo que aparece na página inicial da loja, na mesma ordem do site: banners, Chegou Agora, destaques, lançamentos e bandas.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "homepage".
@@ -1416,6 +1416,10 @@ export interface Homepage {
    * Mínimo 3, máximo 30 segundos.
    */
   tempoDoCarrossel?: number | null;
+  /**
+   * Escolha os discos da faixa "Chegou Agora" e arraste para pôr na ordem em que devem passar — igual aos banners. Vale para a home e para a prateleira "Chegou agora" de Produtos. Se ficar vazio, a faixa mostra sozinha os discos cadastrados mais recentemente. Disco que esgotar some da faixa sozinho e volta quando o estoque for reposto.
+   */
+  chegouAgora?: (number | Record)[] | null;
   /**
    * Escolha até 3 discos para aparecer na seção "Destaques" da home. Arraste para reordenar.
    */
@@ -1563,7 +1567,7 @@ export interface Whatsapp {
 export interface Rodape {
   id: number;
   /**
-   * Cada lista vira uma coluna do rodapé, lado a lado. O normal são duas ou três: uma com as partes da loja ("Catálogo", "Vestuário") e outra com informação ("Sobre a Loja", "Trocas e Devoluções"). No celular elas viram uma embaixo da outra. Arraste para trocar a ordem.
+   * Cada lista vira uma coluna do rodapé, lado a lado. O normal são duas ou três: uma com as partes da loja ("Produtos", "Lançamentos Exclusivos") e outra com informação ("Sobre a Loja", "Trocas e Devoluções"). No celular elas viram uma embaixo da outra. Arraste para trocar a ordem.
    */
   colunas?:
     | {
@@ -1982,6 +1986,7 @@ export interface SegurancaDaConta {
 export interface HomepageSelect<T extends boolean = true> {
   banners?: T;
   tempoDoCarrossel?: T;
+  chegouAgora?: T;
   featuredRecords?: T;
   exclusiveReleases?: T;
   bandIcons?:
