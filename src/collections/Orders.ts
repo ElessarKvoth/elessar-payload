@@ -39,6 +39,15 @@ const RECORDS_SLUG = 'records' as CollectionSlug
 const APPAREL_SLUG = 'apparel' as CollectionSlug
 const USERS_SLUG = 'users' as CollectionSlug
 
+// ── FRETE DE TESTE (TEMPORÁRIO — REMOVER APÓS O TESTE DE COMPRA) ─────────────
+// Até esta data, QUALQUER conta pode fechar pedido sem serviço de frete, com o
+// frete forçado a zero. Existe só para testar o pagamento de ponta a ponta antes
+// de divulgar o site. Tem validade para se desligar sozinho caso a remoção seja
+// esquecida — passado o prazo, volta a valer a trava normal (abaixo).
+// O storefront tem a mesma data em app/carrinho/page.tsx.
+// Para remover: apague esta constante e o bloco que a usa no beforeValidate.
+const FRETE_DE_TESTE_VALE_ATE = Date.parse('2026-10-11T23:59:59-03:00')
+
 const ORDER_STATUSES = [
   { label: 'Aguardando pagamento', value: 'aguardando_pagamento' },
   { label: 'Pago', value: 'pago' },
@@ -223,7 +232,13 @@ export const Orders: CollectionConfig = {
           (req.user as { role?: string } | null)?.role !== 'admin' &&
           !(typeof frete?.servicoId === 'number' && Number.isFinite(frete.servicoId))
         ) {
-          throw new APIError('Escolha uma opção de frete antes de finalizar.', 400)
+          if (Date.now() > FRETE_DE_TESTE_VALE_ATE) {
+            throw new APIError('Escolha uma opção de frete antes de finalizar.', 400)
+          }
+          // FRETE DE TESTE (temporário): aceito, mas o valor é sempre zero —
+          // nunca o que o cliente mandou. Sem serviço, a etiqueta não é criada.
+          if (frete) frete.preco = 0
+          data.shipping = 0
         }
         if (frete && typeof frete.preco === 'number') {
           data.shipping = frete.preco
