@@ -3,11 +3,37 @@ import { addDataAndFileToRequest, headersWithCors } from 'payload'
 import { Preference } from 'mercadopago'
 
 import { mercadoPagoClient, frontendBaseUrl } from '../utils/mercadopago'
+import { formaValida, valorNaForma, type FormaDePagamento } from '../utils/acrescimoDePagamento'
 import type { Order } from '../payload-types'
+
+// Meios que cada Preference aceita. O Mercado Pago não deixa excluir o saldo
+// em conta ("Dinheiro em conta"), então ele aparece nas duas — e na de Pix sai
+// pelo preço do Pix, que é a regra combinada para o saldo.
+const MEIOS_DA_FORMA: Record<
+  FormaDePagamento,
+  { excluded_payment_types: Array<{ id: string }>; excluded_payment_methods: Array<{ id: string }> }
+> = {
+  pix: {
+    excluded_payment_types: ['credit_card', 'debit_card', 'prepaid_card', 'ticket', 'atm', 'digital_currency'].map(
+      (id) => ({ id }),
+    ),
+    excluded_payment_methods: [],
+  },
+  cartao: {
+    excluded_payment_types: [{ id: 'bank_transfer' }],
+    excluded_payment_methods: [{ id: 'pix' }],
+  },
+}
 
 // Cria a Preference do Checkout Pro para um pedido já existente e devolve a
 // URL de redirecionamento (init_point). Não move dinheiro nem toca no status
 // do pedido — quem confirma o pagamento é o webhook, nunca este endpoint.
+//
+// O cliente escolhe a forma no site (`forma: 'pix' | 'cartao'`) e o VALOR sai
+// daqui: no cartão, cada item e o frete ganham 5% (utils/acrescimoDePagamento).
+// O pedido não muda — a taxa só é gravada quando o pagamento é confirmado,
+// pela forma da Preference que de fato foi paga. Trocar de forma e pedir outro
+// link, portanto, nunca deixa o pedido com valor desatualizado.
 export const criarPagamentoMercadoPago: Endpoint = {
   path: '/pedidos/criar-pagamento',
   method: 'post',
@@ -30,8 +56,11 @@ export const criarPagamentoMercadoPago: Endpoint = {
     }
 
     await addDataAndFileToRequest(req)
-    const body = (req.data ?? {}) as { orderNumber?: unknown }
+    const body = (req.data ?? {}) as { orderNumber?: unknown; forma?: unknown }
     const orderNumber = typeof body.orderNumber === 'string' ? body.orderNumber : ''
+    // Ausente ou inválida vira Pix: a Preference de Pix não aceita cartão, então
+    // uma requisição manipulada não consegue pagar no cartão pelo preço do Pix.
+    const forma = formaValida(body.forma)
     if (!orderNumber) return resp({ erro: 'orderNumber é obrigatório.' }, 400)
 
     const found = await req.payload.find({
@@ -68,7 +97,7 @@ export const criarPagamentoMercadoPago: Endpoint = {
       id: `item-${idx}`,
       title: item.productTitle,
       quantity: item.quantity,
-      unit_price: Number((item.unitPrice / 100).toFixed(2)),
+      unit_price: Number((valorNaForma(item.unitPrice, forma) / 100).toFixed(2)),
       currency_id: 'BRL',
     }))
     if (shipping > 0) {
@@ -76,7 +105,7 @@ export const criarPagamentoMercadoPago: Endpoint = {
         id: 'frete',
         title: 'Frete',
         quantity: 1,
-        unit_price: Number((shipping / 100).toFixed(2)),
+        unit_price: Number((valorNaForma(shipping, forma) / 100).toFixed(2)),
         currency_id: 'BRL',
       })
     }
@@ -89,6 +118,9 @@ export const criarPagamentoMercadoPago: Endpoint = {
         body: {
           items: itensPreference,
           external_reference: order.orderNumber,
+          payment_methods: MEIOS_DA_FORMA[forma],
+          // Volta no pagamento: é por ela que a confirmação sabe qual valor esperar.
+          metadata: { forma },
           payer: {
             name: dest?.nome ?? undefined,
             email: dest?.email ?? undefined,

@@ -57,6 +57,7 @@ function totaisDoPedido(p: PedidoParaEmail): NonNullable<EmailBaseArgs['totais']
     { rotulo: 'Subtotal', valor: reais(p.subtotal) },
     { rotulo: p.servicoDeFrete ? `Frete (${p.servicoDeFrete})` : 'Frete', valor: reais(p.frete) },
     ...(p.desconto > 0 ? [{ rotulo: 'Desconto', valor: `− ${reais(p.desconto)}` }] : []),
+    ...(p.acrescimo > 0 ? [{ rotulo: 'Taxa do cartão/boleto (5%)', valor: reais(p.acrescimo) }] : []),
     { rotulo: 'Total', valor: reais(p.total), forte: true },
   ]
 }
@@ -100,6 +101,7 @@ export function montarEmailDoCliente(
             `Seu pedido **${p.numero}** foi registrado.`,
             'Os itens são separados assim que o pagamento é confirmado. Se ainda não pagou, é só usar o botão ' +
               'abaixo. Se já pagou, pode ignorar: a confirmação chega em outro e-mail.',
+            'O total abaixo é o valor no Pix ou saldo Mercado Pago. No cartão ou boleto há uma taxa de 5%.',
           ],
           totais: totaisDoPedido(p),
           secoes: [secaoDeEntrega(p)],

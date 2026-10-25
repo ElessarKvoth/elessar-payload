@@ -105,7 +105,7 @@ export const Orders: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [
-      async ({ data, req, operation }) => {
+      async ({ data, req, operation, originalDoc }) => {
         if (!data) return data
 
         // Gera número do pedido automaticamente
@@ -311,7 +311,17 @@ export const Orders: CollectionConfig = {
           }
           data.discount = desconto
 
-          data.total = subtotal + (data.shipping ?? 0) - desconto
+          // Taxa do cartão/boleto: só a confirmação do pagamento grava (ver
+          // utils/acrescimoDePagamento.ts). No create é sempre zero. Num save do
+          // painel — que reenvia `items` — vem do pedido gravado; sem isso, mexer
+          // no pedido apagaria a taxa do total.
+          const acrescimo =
+            operation === 'create'
+              ? 0
+              : (data.acrescimoPagamento ?? (originalDoc as Order | undefined)?.acrescimoPagamento ?? 0)
+          data.acrescimoPagamento = acrescimo
+
+          data.total = subtotal + (data.shipping ?? 0) - desconto + acrescimo
         }
 
         return data
@@ -597,12 +607,25 @@ export const Orders: CollectionConfig = {
       defaultValue: 0,
     },
     {
+      name: 'acrescimoPagamento',
+      access: somenteServidor,
+      label: 'Taxa do cartão/boleto (centavos)',
+      type: 'number',
+      defaultValue: 0,
+      admin: {
+        description:
+          'Acréscimo de 5% sobre produtos e frete quando o cliente paga com cartão ou boleto. ' +
+          'Gravado automaticamente quando o pagamento é confirmado. Pix e saldo Mercado Pago: zero.',
+        readOnly: true,
+      },
+    },
+    {
       name: 'total',
       access: somenteServidor,
       label: 'Total (centavos)',
       type: 'number',
       required: true,
-      admin: { description: 'Calculado: subtotal + frete − desconto.', readOnly: true },
+      admin: { description: 'Calculado: subtotal + frete − desconto + taxa do cartão/boleto.', readOnly: true },
       validate: ((
         value: number | null | undefined,
         { data }: { data: Record<string, unknown> },
@@ -611,9 +634,10 @@ export const Orders: CollectionConfig = {
         const expected =
           ((data.subtotal as number) ?? 0) +
           ((data.shipping as number) ?? 0) -
-          ((data.discount as number) ?? 0)
+          ((data.discount as number) ?? 0) +
+          ((data.acrescimoPagamento as number) ?? 0)
         if (value !== expected) {
-          return `Total (${value}) deve ser igual a subtotal + frete − desconto (esperado: ${expected}).`
+          return `Total (${value}) deve ser igual a subtotal + frete − desconto + taxa (esperado: ${expected}).`
         }
         return true
       }) satisfies NonNullable<NumberField['validate']>,

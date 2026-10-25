@@ -16,6 +16,7 @@ import * as migration_20260910_200000_mensagem_de_reembolso from './20260910_200
 import * as migration_20260916_120000_banner_destino_clicavel from './20260916_120000_banner_destino_clicavel';
 import * as migration_20260916_170000_destaque_do_disco from './20260916_170000_destaque_do_disco';
 import * as migration_20261008_120000_etiquetas_do_disco from './20261008_120000_etiquetas_do_disco';
+import * as migration_20261025_120000_acrescimo_do_pagamento from './20261025_120000_acrescimo_do_pagamento';
 
 export const migrations = [
   {
@@ -107,5 +108,10 @@ export const migrations = [
     up: migration_20261008_120000_etiquetas_do_disco.up,
     down: migration_20261008_120000_etiquetas_do_disco.down,
     name: '20261008_120000_etiquetas_do_disco',
+  },
+  {
+    up: migration_20261025_120000_acrescimo_do_pagamento.up,
+    down: migration_20261025_120000_acrescimo_do_pagamento.down,
+    name: '20261025_120000_acrescimo_do_pagamento',
   },
 ];

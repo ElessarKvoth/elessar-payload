@@ -42,6 +42,8 @@ export interface PedidoParaEmail {
   subtotal: number
   frete: number
   desconto: number
+  /** Taxa do cartão/boleto (5%), gravada na confirmação. Zero no Pix. */
+  acrescimo: number
   total: number
   servicoDeFrete?: string
   prazoDias?: number | null
@@ -199,6 +201,7 @@ export async function carregarPedidoParaEmail(
     subtotal: pedido.subtotal,
     frete: pedido.shipping ?? 0,
     desconto: pedido.discount ?? 0,
+    acrescimo: pedido.acrescimoPagamento ?? 0,
     total: pedido.total,
     servicoDeFrete: [frete.nome, frete.transportadora].filter(Boolean).join(' · ') || undefined,
     prazoDias: frete.prazo,

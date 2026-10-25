@@ -5,6 +5,7 @@ import { Payment } from 'mercadopago'
 
 import type { Order } from '../payload-types'
 import { mercadoPagoClient, paymentMethodFromTipo } from './mercadopago'
+import { acrescimoDoPedido, formaDoPagamento, totalBase } from './acrescimoDePagamento'
 import { alertarPagamentoNaoConfirmado, alertarPagamentoSemPedidoAberto } from './emailsDePedido'
 import { dataHoraBr } from './emailTemplate'
 import { executorDaTransacao, ItemIndisponivelError } from './reservarEstoque'
@@ -87,6 +88,19 @@ async function comPedidoTravado<T>(
 }
 
 type Desfecho = { resultado: ResultadoConfirmacao; alerta?: () => Promise<void> }
+
+/**
+ * Taxa do cartão/boleto que ESTE pagamento deve carregar. Sai da forma da
+ * Preference paga (gravada pelo servidor no `metadata`), não da última escolha
+ * do cliente no site: quem gera link de cartão, volta e paga um link de Pix
+ * antigo paga o preço do Pix — e o pedido fica certo nos dois casos.
+ *
+ * Sempre recalculada dos itens e do frete, nunca do `total`: confirmar o mesmo
+ * pedido duas vezes grava o mesmo número, sem 5% sobre 5%.
+ */
+function acrescimoDoPagamento(pedido: Order, payment: { metadata?: unknown }): number {
+  return formaDoPagamento(payment) === 'cartao' ? acrescimoDoPedido(pedido) : 0
+}
 
 // Lógica única de confirmação de pagamento, usada tanto pelo webhook (assíncrono,
 // disparado pelo MP) quanto pelo endpoint de retorno (síncrono, disparado quando o
@@ -178,12 +192,13 @@ export async function confirmarPagamentoMercadoPago(
       // foi o valor deste pedido, nem na moeda certa. Divergência nunca vira
       // "pago": fica em aguardando_pagamento para conferência humana.
       const pagoEmCentavos = Math.round((payment.transaction_amount ?? 0) * 100)
-      const esperadoEmCentavos = atual.total ?? 0
+      const acrescimo = acrescimoDoPagamento(atual, payment)
+      const esperadoEmCentavos = totalBase(atual) + acrescimo
       const moeda = payment.currency_id ?? ''
 
       if (moeda !== 'BRL' || pagoEmCentavos < esperadoEmCentavos) {
         const detalhe =
-          `esperado ${esperadoEmCentavos} centavos (BRL), ` +
+          `esperado ${esperadoEmCentavos} centavos (BRL, ${acrescimo > 0 ? 'cartão/boleto com taxa' : 'preço do Pix'}), ` +
           `recebido ${pagoEmCentavos} centavos (${moeda || 'moeda ausente'})`
         payload.logger.error(
           `[mercadopago] DIVERGÊNCIA DE PAGAMENTO no pedido ${orderNumber}: ${detalhe}. ` +
@@ -226,6 +241,8 @@ export async function confirmarPagamentoMercadoPago(
           paymentStatus: 'paid',
           paymentMethod: paymentMethodFromTipo(payment.payment_type_id),
           idPagamentoMercadoPago: idPagamento,
+          acrescimoPagamento: acrescimo,
+          total: esperadoEmCentavos,
         },
         overrideAccess: true,
         req,
@@ -266,6 +283,7 @@ export async function confirmarPagamentoMercadoPago(
       payload.logger.error(
         `[pagamento] Pedido ${orderNumber} PAGO (pagamento ${idPagamento}) mas não confirmado: ${motivo}`,
       )
+      const acrescimo = acrescimoDoPagamento(atual, payment)
       const retido = await payload.update({
         collection: 'orders',
         id: atual.id,
@@ -273,6 +291,9 @@ export async function confirmarPagamentoMercadoPago(
           paymentStatus: 'paid',
           paymentMethod: paymentMethodFromTipo(payment.payment_type_id),
           idPagamentoMercadoPago: idPagamento,
+          // Grava o que o cliente pagou, para o gerente estornar o valor certo.
+          acrescimoPagamento: acrescimo,
+          total: totalBase(atual) + acrescimo,
           notes: anotar(
             atual.notes,
             `Pagamento ${idPagamento} aprovado, mas o pedido não pôde ser confirmado: ${motivo} ` +

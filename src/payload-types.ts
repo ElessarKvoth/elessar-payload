@@ -704,7 +704,11 @@ export interface Order {
   };
   discount?: number | null;
   /**
-   * Calculado: subtotal + frete − desconto.
+   * Acréscimo de 5% sobre produtos e frete quando o cliente paga com cartão ou boleto. Gravado automaticamente quando o pagamento é confirmado. Pix e saldo Mercado Pago: zero.
+   */
+  acrescimoPagamento?: number | null;
+  /**
+   * Calculado: subtotal + frete − desconto + taxa do cartão/boleto.
    */
   total: number;
   status: 'aguardando_pagamento' | 'pago' | 'etiqueta_criada' | 'enviado' | 'entregue' | 'cancelado' | 'reembolsado';
@@ -1250,6 +1254,7 @@ export interface OrdersSelect<T extends boolean = true> {
         preco?: T;
       };
   discount?: T;
+  acrescimoPagamento?: T;
   total?: T;
   status?: T;
   paymentMethod?: T;

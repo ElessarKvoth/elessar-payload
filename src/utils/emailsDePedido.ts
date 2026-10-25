@@ -67,6 +67,7 @@ function totaisDoPedido(p: PedidoParaEmail): NonNullable<EmailBaseArgs['totais']
     { rotulo: 'Subtotal', valor: reais(p.subtotal) },
     { rotulo: 'Frete', valor: reais(p.frete) },
     ...(p.desconto > 0 ? [{ rotulo: 'Desconto', valor: `− ${reais(p.desconto)}` }] : []),
+    ...(p.acrescimo > 0 ? [{ rotulo: 'Taxa do cartão/boleto (5%)', valor: reais(p.acrescimo) }] : []),
     { rotulo: 'Total', valor: reais(p.total), forte: true },
   ]
 }
